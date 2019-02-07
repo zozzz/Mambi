@@ -1,3 +1,6 @@
 #pragma once
 
-#include "resource.h"
+#include "Console.h"
+#include "Resources.h"
+#include "Application.h"
+#include "TrayIcon.h"

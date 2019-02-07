@@ -4,18 +4,17 @@
 #include "stdafx.h"
 #include "Mambi.h"
 
-#define MAX_LOADSTRING 100
 
 // Global Variables:
-HINSTANCE hInst;                                // current instance
-WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
-WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+//HINSTANCE hInst;                                // current instance
+//WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
+//WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
 // Forward declarations of functions included in this code module:
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
-LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+//ATOM                MyRegisterClass(HINSTANCE hInstance);
+//BOOL                InitInstance(HINSTANCE, int);
+//LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
+//INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -25,19 +24,27 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
+	if (!Mambi::Application::Instance().Init(hInstance))
+	{
+		return FALSE;
+	}
+
+	return Mambi::Application::Instance().Run();
+
     // TODO: Place code here.
 
     // Initialize global strings
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_MAMBI, szWindowClass, MAX_LOADSTRING);
-    MyRegisterClass(hInstance);
+    //LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+    //LoadStringW(hInstance, IDC_MAMBI, szWindowClass, MAX_LOADSTRING);
+    //MyRegisterClass(hInstance);
 
     // Perform application initialization:
-    if (!InitInstance (hInstance, nCmdShow))
+    /*if (!InitInstance (hInstance, nCmdShow))
     {
         return FALSE;
-    }
+    }*/
 
+	/*
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_MAMBI));
 
     MSG msg;
@@ -53,6 +60,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
 
     return (int) msg.wParam;
+	*/
 }
 
 
@@ -62,6 +70,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 //
 //  PURPOSE: Registers the window class.
 //
+/*
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
     WNDCLASSEXW wcex;
@@ -82,6 +91,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 
     return RegisterClassExW(&wcex);
 }
+*/
 
 //
 //   FUNCTION: InitInstance(HINSTANCE, int)
@@ -93,6 +103,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //        In this function, we save the instance handle in a global variable and
 //        create and display the main program window.
 //
+/*
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
@@ -110,6 +121,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    return TRUE;
 }
+*/
 
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -121,6 +133,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - post a quit message and return
 //
 //
+/*
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -178,3 +191,4 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
+*/
