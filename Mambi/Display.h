@@ -16,7 +16,7 @@ https://github.com/smasherprog/screen_capture_lite/blob/master/src/windows/DXFra
 
 namespace Mambi
 {
-	typedef unsigned short DisplayDim;
+	typedef float DisplayDim;
 
 
 	class Display;
@@ -57,7 +57,7 @@ namespace Mambi
 			: _width(w), _height(h), _margin(m) { }
 
 		template<SampleAlign Align>
-		const Mambi::Samples& Samples(DisplayDim size, float scale, uint8_t tcount);
+		const void Samples(Mambi::Samples& samples, DisplayDim size, float scale, uint8_t tcount) const;
 		
 		inline bool operator==(const DisplaySample& other) 
 		{
@@ -84,7 +84,7 @@ namespace Mambi
 			uint8_t hcount;
 			uint8_t vcount;
 
-			bool operator() (const SampleRequest& a, const SampleRequest& b) {
+			bool operator() (const SampleRequest& a, const SampleRequest& b) const {
 				return a.width < b.width 
 					&& a.height < b.height 
 					&& a.hcount < b.hcount 

@@ -66,15 +66,10 @@ namespace Mambi
 		{
 			Mambi::Samples& samples = _cache[request];
 
-			auto& hSamplesTop = _sampleH.Samples<SampleAlign::Begin>(request.width, request.width / _nativeW, request.hcount);
-			auto& hSamplesBot = _sampleH.Samples<SampleAlign::End>(request.width, request.width / _nativeW, request.hcount);
-			auto& vSamplesLeft = _sampleV.Samples<SampleAlign::Begin>(request.height, request.height / _nativeH, request.vcount);
-			auto& vSamplesRight = _sampleV.Samples<SampleAlign::End>(request.height, request.height / _nativeH, request.vcount);
-
-			samples.insert(samples.end(), hSamplesTop.begin(), hSamplesTop.end());
-			samples.insert(samples.end(), hSamplesBot.begin(), hSamplesBot.end());
-			samples.insert(samples.end(), vSamplesLeft.begin(), vSamplesLeft.end());
-			samples.insert(samples.end(), vSamplesRight.begin(), vSamplesRight.end());
+			_sampleH.Samples<SampleAlign::Begin>(samples, request.width, request.width / _nativeW, request.hcount);
+			_sampleH.Samples<SampleAlign::End>(samples, request.width, request.width / _nativeW, request.hcount);
+			_sampleV.Samples<SampleAlign::Begin>(samples, request.height, request.height / _nativeH, request.vcount);
+			_sampleV.Samples<SampleAlign::End>(samples, request.height, request.height / _nativeH, request.vcount);
 
 			return samples;
 		}
@@ -83,7 +78,7 @@ namespace Mambi
 
 	template<SampleOrient Orient>
 	template<SampleAlign Align>
-	const Mambi::Samples& DisplaySample<Orient>::Samples<Align>(DisplayDim size, float scale, uint8_t tcount)
+	const void DisplaySample<Orient>::Samples(Mambi::Samples& samples, DisplayDim size, float scale, uint8_t tcount) const
 	{
 		float lsize = size * scale;
 		float lwidth = _width * scale;
@@ -92,11 +87,11 @@ namespace Mambi
 
 		if (Orient == SampleOrient::Horizontal)
 		{
-			int mcount = floor(lsize / lwidth);
+			int mcount = (int)floor(lsize / lwidth);
 			int count = min(tcount, mcount);
-			int gap = floor((lsize - (lwidth * count)) / (count - 1));
-			Mambi::Samples samples(count);
-
+			int gap = (int)floor((lsize - (lwidth * count)) / (count - 1));
+			samples.resize(samples.size() + count);
+			
 			DisplayDim x = _margin * scale;
 			for (int i = 0; i < count; i++) 
 			{
@@ -104,18 +99,16 @@ namespace Mambi
 				samples[i].left = x;
 				samples[i].width = floor(lwidth);
 				samples[i].height = floor(lheight);				
-				x += lwidth + gap
+				x += lwidth + gap;
 			}
-
-			return samples;
 		}
 		else if (Orient == SampleOrient::Vertical)
 		{
-			int mcount = floor(lsize / lheight);
+			int mcount = (int)floor(lsize / lheight);
 			int count = min(tcount, mcount);
-			int gap = floor((lsize - (lheight * count)) / (count - 1));
-			Mambi::Samples samples(count);
-
+			int gap = (int)floor((lsize - (lheight * count)) / (count - 1));
+			samples.resize(samples.size() + count);
+			
 			DisplayDim y = _margin * scale;
 			for (int i = 0; i < count; i++)
 			{
@@ -123,10 +116,8 @@ namespace Mambi
 				samples[i].left = (Align == SampleAlign::Begin ? 0 : floor(lsize - lwidth));
 				samples[i].width = floor(lwidth);
 				samples[i].height = floor(lheight);
-				y += lheight + gap
+				y += lheight + gap;
 			}
-
-			return samples;
 		}
 	}
 }
