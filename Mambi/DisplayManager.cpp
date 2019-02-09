@@ -16,7 +16,7 @@ namespace Mambi
 	}
 
 
-	void DisplayManager::Update()
+	bool DisplayManager::Update()
 	{
 		auto& cfg = Application::Config().Data();
 		std::vector<std::string> defined;
@@ -32,20 +32,23 @@ namespace Mambi
 
 					defined.push_back(key);
 
-					auto& display = _displays[key];
-					display.HardwareId(key);
-
-					Console::WriteLine("Key = %s", key.c_str());
+					if (!_displays[key].Update(value))
+					{
+						_displays.empty();
+						return false;
+					}
 				}
 			}
 			else
 			{
 				ErrorAlert("Error", "The 'display' option must be an object.");
+				return false;
 			}			
 		}
 		else
 		{
 			ErrorAlert("Error", "Missing 'display' option in config.");
+			return false;
 		}
 
 		// remove unpresented configs
@@ -63,5 +66,7 @@ namespace Mambi
 			Console::WriteLine("Erase %s", el.c_str());
 			_displays.erase(el);
 		}
+
+		return true;
 	}
 }

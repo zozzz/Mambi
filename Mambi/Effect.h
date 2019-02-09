@@ -1,38 +1,33 @@
 #pragma once
 #include "stdafx.h"
+#include "Color.h"
 
 // https://github.com/MrBoe/bambilight
 
 namespace Mambi
 {
-	struct Color {
-		static Color FromHex(const std::string& hex) {
-			Color ret;
-			ReadHexInto(hex, ret);
-			return ret;
-		};
-
-
-		static bool ReadHexInto(const std::string& hex, Color& color)
-		{
-			return sscanf_s(hex.c_str(), "%02x%02x%02x", &color.r, &color.g, &color.b) == 3;
-		}
-
-
-		uint8_t r, g, b;
-	};
-
-
+	
 	class Effect
 	{
 	public:
 		static Effect* New(const json& cfg);
-
+				
 		Effect(const char* type);
 		virtual ~Effect();
 
-		virtual void Update(const json& cfg);
+		virtual bool Update(const json& cfg) = 0;
 		virtual void Tick() = 0;
+
+		virtual bool Equals(const Effect& other) const = 0;
+		inline bool operator==(const Effect& other) const 
+		{
+			return other._type == _type && Equals(other);
+		}
+		inline bool operator!=(const Effect& other) const
+		{
+			return other._type != _type || !Equals(other);
+		}
+		
 
 		inline auto& Type() const { return _type; }
 
@@ -42,17 +37,74 @@ namespace Mambi
 
 
 	class Effect_Static : public Effect {
-	public:
+	public:		
 		using Effect::Effect;
 
-		virtual void Update(const json& cfg);
-		virtual void Tick();
+		bool Update(const json& cfg);
+		void Tick();
+		inline bool Equals(const Effect& other) const
+		{
+			return static_cast<const Effect_Static&>(other)._color == _color;
+		}
 
 	protected:
-		Color _color;
+		
+		color_t _color;
 	};
 
 
+
+	class Effect_Ambilight : public Effect {
+	public:
+		struct Spot {
+			enum Orient {
+				Horizontal = 1,
+				Vertical = 2,
+			};
+
+			Orient orient;
+			uint8_t count;
+			uint16_t margin;
+			uint16_t width;
+			uint16_t height;
+		};
+
+		using Effect::Effect;
+
+		bool Update(const json& cfg);
+		void Tick();
+		inline bool Equals(const Effect& other) const
+		{
+			return false;
+		}
+
+	protected:
+		Spot hspot;
+		Spot vspot;		
+	};
+
+
+	class Effect_Breath : public Effect {
+	public:
+		using Effect::Effect;
+
+		bool Update(const json& cfg);
+		void Tick();
+		inline bool Equals(const Effect& other) const
+		{
+			return false;
+		}
+
+	protected:
+		unsigned int duration;
+		uint8_t max;
+		uint8_t min;
+		
+	};
+
+
+
+	/*
 	class Effect_Ambilight : public Effect {
 	public:
 		using Effect::Effect;
@@ -69,4 +121,5 @@ namespace Mambi
 		virtual void Update(const json& cfg);
 		virtual void Tick();
 	};
+	*/
 }

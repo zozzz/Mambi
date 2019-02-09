@@ -11,16 +11,16 @@ namespace Mambi
 		LedStripManager();
 		~LedStripManager();
 
-		void Update();
+		bool Update();
 		void Light(int id, LedStrip::LightInfo& info);
 
 			
 		LedStripManager(LedStripManager const&) = delete;
 		void operator=(LedStripManager const&) = delete;
 	private:
-		void LoadStrips(const json& items);
+		bool LoadStrips(const json& items);
 
-		std::vector<LedStrip> _strips;
+		std::map<std::string, LedStrip> _strips;
 	};
 
 }

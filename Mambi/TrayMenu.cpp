@@ -34,15 +34,11 @@ namespace Mambi
 
 	UINT TrayMenu::Show()
 	{
-		Console::WriteLine("TrayMenu::Show");
-
 		POINT mouse;
 		GetCursorPos(&mouse);
 
 		UINT res = TrackPopupMenu(_menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_LEFTBUTTON, mouse.x, mouse.y, 0, Application::WindowHandle(), NULL);
 		
-		Console::WriteLine("TrayMenu::Show Result = %d", res);
-
 		return res;	
 	}
 
@@ -73,7 +69,8 @@ namespace Mambi
 		_profileMenuLabel = "Profile";
 		if (isAutoDetect)
 		{
-			_profileMenuLabel += ": Auto";
+			auto& active = Application::Profile().Active();
+			_profileMenuLabel += ": Auto (" + active.Title() + ")";
 		}
 
 		int pos = 1;

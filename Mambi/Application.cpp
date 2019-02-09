@@ -139,7 +139,7 @@ namespace Mambi {
 	void Application::CreateMainWindow()
 	{
 		_hWnd = CreateWindowEx(
-			0, //WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_TRANSPARENT,
+			WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_TRANSPARENT,
 			Resources::MainWindowClass().Data(), 
 			NULL, 
 			0,
@@ -152,7 +152,7 @@ namespace Mambi {
 		}
 
 		// SW_HIDE, SW_FORCEMINIMIZE
-		ShowWindow(_hWnd, SW_SHOW);
+		ShowWindow(_hWnd, SW_FORCEMINIMIZE);
 		UpdateWindow(_hWnd);
 	}
 }

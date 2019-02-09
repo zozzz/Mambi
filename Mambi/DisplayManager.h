@@ -11,8 +11,7 @@ namespace Mambi
 		DisplayManager();
 		~DisplayManager();
 
-		void Update();
-
+		bool Update();
 
 		DisplayManager(DisplayManager const&) = delete;
 		void operator=(DisplayManager const&) = delete;

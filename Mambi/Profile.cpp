@@ -2,21 +2,27 @@
 #include "Profile.h"
 #include "Messages.h"
 #include "Console.h"
+#include "Effect.h"
+#include "Config.h"
 
 
 namespace Mambi
 {
-	Profile::Profile()
+	Profile::Profile(): _effect(NULL)
 	{
 	}
 
 
 	Profile::~Profile()
 	{		
+		if (_effect != NULL) 
+		{
+			delete _effect;
+		}
 	}
 
 
-	void Profile::Update(const std::string& title,  const json& cfg)
+	bool Profile::Update(const std::string& title,  const json& cfg)
 	{
 		_title = title;
 
@@ -38,20 +44,58 @@ namespace Mambi
 			else 
 			{
 				ErrorAlert("Error", "Unexpected 'fgApplication' property value");
+				return false;
 			}
 		}
 		else
 		{
 			ErrorAlert("Error", "Missing 'fgApplication' property from profile config");
+			return false;
 		}
 
-		if (cfg.count("priority") && cfg["priority"].is_number_integer())
+		MAMBI_CFG_VNUM_INT_RANGE(cfg, "priority", "profile", 0, 100)
+		_priority = cfg["priority"];
+
+		if (cfg.count("effect")) 
 		{
-			_priority = cfg["priority"];
+			if (cfg["effect"].is_object())
+			{
+				if (cfg["effect"].count("type"))
+				{
+					Mambi::Effect* newEffect = Mambi::Effect::New(cfg["effect"]);
+					if (newEffect != NULL)
+					{
+						if (_effect == NULL)
+						{
+							_effect = newEffect;
+						} 
+						else if (*_effect != *newEffect)
+						{
+							delete _effect;
+							_effect = newEffect;
+						}
+						else 
+						{
+							delete newEffect;
+						}
+					}
+				}
+				else
+				{
+					ErrorAlert("Error", "Missing 'type' property from effect config");
+					return false;
+				}
+			}
+			else
+			{
+				ErrorAlert("Error", "Incorrect type 'effect' option, must be an object");
+				return false;
+			}
 		}
 		else
 		{
-			_priority = 0;
+			ErrorAlert("Error", "Missing 'effect' property from profile config");
+			return false;
 		}
 	}
 

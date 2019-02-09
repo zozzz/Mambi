@@ -3,6 +3,47 @@
 #include "Messages.h"
 
 
+#define MAMBI_CFG_EXISTS(__cfg, __name, __path) \
+	if (!(__cfg).count(__name)) { \
+		ErrorAlert("Error", "Missing '" ## __name ## "' property from '" ## __path ## "'"); \
+		return false; \
+	}
+
+#define MAMBI_CFG_VNUM_INT(__cfg, __name, __path) \
+	MAMBI_CFG_EXISTS(__cfg, __name, __path) \
+	else if (!(__cfg)[__name].is_number_integer()) { \
+		ErrorAlert("Error", "The '" ## __name ## "' value must be integer  in '" ## __path ## "'"); \
+		return false; \
+	}
+
+
+#define MAMBI_CFG_VNUM_INT_RANGE(__cfg, __name, __path, _min, _max) \
+	MAMBI_CFG_VNUM_INT(__cfg, __name, __path) \
+	else if ((__cfg)[__name] < _min) { \
+		ErrorAlert("Error", "The '" ## __name ## "' value must be greater or equal then " # _min " in '" ## __path ## "'"); \
+		return false; \
+	} else if ((__cfg)[__name] > _max) { \
+		ErrorAlert("Error", "The '" ## __name ## "' value must be lower or equal then " # _max " in '" ## __path ## "'"); \
+		return false; \
+	}
+
+
+#define MAMBI_CFG_IS_OBJECT(__cfg, __name, __path) \
+	MAMBI_CFG_EXISTS(__cfg, __name, __path) \
+	else if (!(__cfg)[__name].is_object()) { \
+		ErrorAlert("Error", "The '" ## __name ## "' value must be object  in '" ## __path ## "'"); \
+		return false; \
+	}
+
+
+#define MAMBI_CFG_IS_STRING(__cfg, __name, __path) \
+	MAMBI_CFG_EXISTS(__cfg, __name, __path) \
+	else if (!(__cfg)[__name].is_string()) { \
+		ErrorAlert("Error", "The '" ## __name ## "' value must be string  in '" ## __path ## "'"); \
+		return false; \
+	}
+
+
 namespace Mambi
 {
 

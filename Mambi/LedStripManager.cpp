@@ -18,53 +18,54 @@ namespace Mambi
 	}
 
 
-	void LedStripManager::Update()
+	bool LedStripManager::Update()
 	{
 		auto& cfg = Application::Config().Data();
 		
-		if (cfg.count("ledStrip")) 
+		MAMBI_CFG_IS_OBJECT(cfg, "ledStrip", "config");
+
+		if (!LoadStrips(cfg["ledStrip"]))
 		{
-			if (cfg["ledStrip"].is_array())
-			{
-				LoadStrips(cfg["ledStrip"]);
-			}
-			else
-			{
-				ErrorAlert("Error", "The 'ledStrip' option is must be an array.");
-			}
+			_strips.empty();
+			return false;
 		}
-		else
-		{
-			ErrorAlert("Error", "Missing 'ledStrip' option in config file.");			
-		}
+
+		return true;
 	}
 
 
-	void LedStripManager::LoadStrips(const json& items)
+	bool LedStripManager::LoadStrips(const json& items)
 	{
-		int count = 0;
+		std::vector<std::string> defined;
+
 		for (auto& el : items.items()) 
 		{
+			auto& key = el.key();
 			auto& item = el.value();
 			
-			if (item.count("port"))
+			if (!_strips[key].Update(item))
 			{
+				_strips.empty();
+				return false;
 			}
-			else
-			{
-				ErrorAlert("Error", "Missing 'port' from ledstrip");
-			}
-
-			count++;
 		}
 
-		int diff = _strips.size() - count;
-		while (diff-- >= 0) 
+		// remove unpresented configs
+		std::vector<std::string> remove;
+		for (auto& el : _strips)
 		{
-			_strips.pop_back();
+			if (std::find(defined.begin(), defined.end(), el.first) == defined.end())
+			{
+				remove.push_back(el.first);
+			}
 		}
 
-		//_strips.resize(count);
+		for (auto& el : remove)
+		{
+			_strips.erase(el);
+		}
+
+		return true;
 	}
 
 

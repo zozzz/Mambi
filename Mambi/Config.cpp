@@ -18,7 +18,7 @@ R"###({
 		"Game": {
 			"fgApplication": "game",
 			"effect": {
-				"type": "ambilight"
+				"type": "ambilight"				
 			},
 			"priority": 100
 		},
@@ -43,24 +43,32 @@ R"###({
 	},
 	"display": {
 		"HARDWARE_ID": {
-			"ledStrip": 0,
+			"width": 3440,
+			"height": 1440,
+			"ledStrip": "main",
 			"samples": {
 				"horizontal": {
-					"count": 20,
-					"margin": 20
+					"width": 100,
+					"height": 100,
+                    "margin": 20
 				},
 				"vertical": {
-					"count": 9,
-					"margin": 20
+					"width": 100,
+					"height": 100,
+                    "margin": 20
 				}
 			}
 		}
 	},
-	"ledStrip": [
-		{
-			"port": ""			
+	"ledStrip": {
+		"main": {
+			"port": "",
+			"leds": {
+				"horizontal": 20,
+				"vertical": 10
+			}
 		}
-	]
+	}
 })###";
 
 

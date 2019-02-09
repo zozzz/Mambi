@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "Effect.h"
 #include "Messages.h"
+#include "Console.h"
+#include "Config.h"
 
 
 namespace Mambi
@@ -32,13 +34,18 @@ namespace Mambi
 			return NULL;
 		}
 
-		return res;
+		if (res->Update(cfg))
+		{
+			return res;
+		}
+		else
+		{
+			return NULL;
+		}
 	}
 
-
-	Effect::Effect(const char* type)
-	{
-		_type = type;
+	Effect::Effect(const char* type): _type(type)
+	{		
 	}
 
 
@@ -47,13 +54,9 @@ namespace Mambi
 	}
 
 
-	void Effect::Update(const json& cfg)
+	bool Effect_Ambilight::Update(const json& cfg)
 	{
-	}
-
-
-	void Effect_Ambilight::Update(const json& cfg)
-	{
+		return true;
 	}
 
 
@@ -62,8 +65,17 @@ namespace Mambi
 	}
 
 
-	void Effect_Breath::Update(const json& cfg)
+	bool Effect_Breath::Update(const json& cfg)
 	{
+		MAMBI_CFG_VNUM_INT_RANGE(cfg, "duration", "breath effect", 0, 100000);
+		MAMBI_CFG_VNUM_INT_RANGE(cfg, "min", "breath effect", 0, 100);
+		MAMBI_CFG_VNUM_INT_RANGE(cfg, "max", "breath effect", 0, 100);		
+		
+		duration = cfg["duration"];
+		min = cfg["min"];
+		max = cfg["max"];
+
+		return true;
 	}
 
 
@@ -72,19 +84,22 @@ namespace Mambi
 	}
 
 
-	void Effect_Static::Update(const json& cfg)
+	bool Effect_Static::Update(const json& cfg)
 	{
 		if (cfg.count("color")) 
-		{
-			if (!Color::ReadHexInto(cfg["color"], _color))
+		{			
+			if (!Color::RedFromHex(_color, cfg["color"]))
 			{
 				ErrorAlert("Error", "Invalid value of 'color' option in static effect");
-			}
+				return false;
+			}					
 		}
 		else
 		{
 			ErrorAlert("Error", "Missing 'color' option from static effect");
+			return false;
 		}
+		return true;
 	}
 
 

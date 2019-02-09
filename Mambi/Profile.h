@@ -1,4 +1,6 @@
 #pragma once
+#include "stdafx.h"
+#include "Effect.h"
 
 
 namespace Mambi
@@ -17,8 +19,9 @@ namespace Mambi
 		~Profile();
 
 		inline auto& Title() const { return _title; }
+		inline auto& Effect() const { return _effect; }
 		inline int Priority() const { return _priority; };
-		void Update(const std::string& title, const json& cfg);
+		bool Update(const std::string& title, const json& cfg);
 		bool Test(HWND fgWindow);
 
 
@@ -32,6 +35,7 @@ namespace Mambi
 		std::string _exe;
 		int _priority;
 		FGDetection _detection;
+		Mambi::Effect* _effect;
 	};
 
 }
