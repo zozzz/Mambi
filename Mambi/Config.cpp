@@ -3,6 +3,7 @@
 #include "Resources.h"
 #include "Config.h"
 #include "Console.h"
+#include "utils.h"
 
 
 namespace Mambi
@@ -13,7 +14,7 @@ namespace Mambi
 	const wchar_t Config::FileName[] = L"config.json";
 	const char Config::DefaultConfig[] = \
 R"###({
-	"selectedProfile": "Breath",
+	"calibrate": false,
 	"profile": {
 		"Game": {
 			"fgApplication": "game",
@@ -25,10 +26,12 @@ R"###({
 		"Breath": {
             "fgApplication": "any",
             "effect": {
-				"type": "breath",
-				"min": 50,
-				"max": 100,
-				"duration": 2000
+				"color": "CC3300",
+                "duration": 5000,
+                "fps": 30,
+                "maxBrightness": 255,
+                "minBrightness": 100,
+                "type": "breath"
 			},
 			"priority": 1
         },
@@ -36,16 +39,21 @@ R"###({
             "fgApplication": "any",
             "effect": {
 				"type": "static",
-				"color": "#CC3300"
+				"color": "CC3300",
+				"brightness": 100
 			},
 			"priority": 0
         }
 	},
 	"display": {
 		"HARDWARE_ID": {
+			"profile": null,
 			"width": 3440,
 			"height": 1440,
-			"ledStrip": "main",
+			"ledStrip": {
+				"name": "main",
+				"offset": 0
+			},
 			"samples": {
 				"horizontal": {
 					"width": 100,
@@ -74,6 +82,8 @@ R"###({
 
 	Config::Config()
 	{
+		_mutex = CreateMutex(NULL, FALSE, NULL);
+
 		PWSTR appData = NULL;
 		SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_NO_ALIAS, NULL, &appData);
 		_appDataPath = appData;
@@ -115,26 +125,37 @@ R"###({
 
 	void Config::Load()
 	{
-		std::ifstream input(Path(), std::ios::binary | std::ios::in);
+		AcquireMutex lock(Mutex());
 
-		try 
+		if (lock) 
 		{
-			input >> _data;
-		}
-		catch (nlohmann::detail::exception e)
-		{
-			ErrorAlert("Error", e.what());
-			return;
-		}
-		
-		SendMessage(Application::WindowHandle(), WM_MAMBI_CONFIG_CHANGED, 0, 0);
+			std::ifstream input(Path(), std::ios::binary | std::ios::in);
+
+			try
+			{
+				input >> _data;
+			}
+			catch (nlohmann::detail::exception e)
+			{
+				ErrorAlert("Error", e.what());
+				return;
+			}
+			
+			lock.Release();			
+
+			SendMessage(Application::WindowHandle(), WM_MAMBI_CONFIG_CHANGED, 0, 0);
+		}		
 	}
 
 
 	void Config::WriteUser(const char* prop, json value)
 	{
 		_data[prop] = value;
+		WriteOut();	
+	}
 
+	void Config::WriteOut()
+	{
 		std::ofstream out(Path());
 
 		try

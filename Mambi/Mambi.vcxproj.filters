@@ -81,6 +81,27 @@
     <ClInclude Include="Color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DuplicatedOutput.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DisplaySample.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Calibrate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Timeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Serial.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -125,6 +146,18 @@
     <ClCompile Include="Effect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DuplicatedOutput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Calibrate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\lib\native\src\lodepng.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Mambi.rc">
@@ -141,5 +174,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="VertexShader.hlsl" />
+    <FxCompile Include="PixelShader.hlsl" />
   </ItemGroup>
 </Project>

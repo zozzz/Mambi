@@ -6,6 +6,7 @@
 #include "LedStripManager.h"
 #include "DisplayManager.h"
 #include "ProfileManager.h"
+#include "Calibrate.h"
 
 
 namespace Mambi {
@@ -25,6 +26,7 @@ namespace Mambi {
 		static inline Mambi::LedStripManager& Led() { return *Instance()._led; }
 		static inline Mambi::DisplayManager& Display() { return *Instance()._display; }
 		static inline Mambi::ProfileManager& Profile() { return *Instance()._profile; }
+		static inline Mambi::Calibrate& Calibrate() { return *Instance()._calibrate; }
 		
 	private:
 		static bool _userEnabled;
@@ -51,6 +53,7 @@ namespace Mambi {
 		static LRESULT CALLBACK _WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 		ATOM RegisterWindowClass();
 		void CreateMainWindow();
+		void OnConfigUpdate();
 
 		HINSTANCE _hInstance;
 		HWND _hWnd;
@@ -61,6 +64,7 @@ namespace Mambi {
 		Mambi::LedStripManager* _led;
 		Mambi::DisplayManager* _display;
 		Mambi::ProfileManager* _profile;
+		Mambi::Calibrate* _calibrate;
 	};
 
 }

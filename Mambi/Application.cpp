@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Mambi.h"
 #include "KeyboardInterceptor.h"
+#include "utils.h"
 
 
 namespace Mambi {
@@ -14,6 +15,7 @@ namespace Mambi {
 
 	Application::~Application()
 	{
+		delete _calibrate;
 		delete _kbInterceptor;
 		delete _trayIcon;
 		delete _config;
@@ -28,6 +30,7 @@ namespace Mambi {
 		Console::WriteLine("Application::Init");
 		_hInstance = hInstance;
 		RegisterWindowClass();
+		CalibrateWindow::RegisterWindowClass();
 		CreateMainWindow();
 
 		_config = new Mambi::Config();
@@ -36,6 +39,7 @@ namespace Mambi {
 		_led = new Mambi::LedStripManager();
 		_display = new Mambi::DisplayManager();
 		_profile = new Mambi::ProfileManager();
+		_calibrate = new Mambi::Calibrate();
 
 		_config->Init();
 		//_profile->Watch();
@@ -76,13 +80,9 @@ namespace Mambi {
 
 	LRESULT CALLBACK Application::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
-		Console::WriteLine("Application::WndProc(%d, %d, %d)", message, wParam, lParam);
+		//Console::WriteLine("Application::WndProc(%d, %d, %d)", message, wParam, lParam);
 		switch (message)
 		{
-		case WM_KEYDOWN:
-			Console::WriteLine("Keydown");
-			break;
-
 		case WM_DESTROY:
 			PostQuitMessage(0);
 			break;
@@ -91,22 +91,44 @@ namespace Mambi {
 			return TrayIcon().WndProc(hWnd, message, wParam, lParam);
 
 		case WM_MAMBI_CONFIG_CHANGED:
-			Console::WriteLine("WM_MAMBI_CONFIG_CHANGED %S", Config().Path().c_str());
-			Led().Update();
-			Display().Update();
-			Profile().Update();			
+			OnConfigUpdate();			
 			return 1;
 
 		case WM_MAMBI_PROFILE_CHANGED:
-			Console::WriteLine("WM_MAMBI_PROFILE_CHANGED %s", Profile().Active().Title().c_str());
+			Console::WriteLine("WM_MAMBI_PROFILE_CHANGED");
 			TrayIcon().Menu().UpdateProfile();
 			return 1;
+
+		case WM_DISPLAYCHANGE:
+			Console::WriteLine("WM_DISPLAYCHANGE");
+			Display().UpdateOutputs();
+			Calibrate().Update();
+			break;
+
+		case WM_PAINT:
+			Console::WriteLine("WM_PAINT %d, %d", wParam, lParam);
+			break;
 
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 
 		return 0;
+	}
+
+	void Application::OnConfigUpdate()
+	{
+		AcquireMutex lock(Config().Mutex());
+
+		if (lock)
+		{
+			Console::WriteLine("Application::OnConfigUpdate", Config().Path().c_str());
+			Led().Update();
+			Profile().Update();
+			Display().Update();
+			Calibrate().Update();
+			lock.Release();			
+		}		
 	}
 
 
@@ -142,7 +164,7 @@ namespace Mambi {
 			WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_TRANSPARENT,
 			Resources::MainWindowClass().Data(), 
 			NULL, 
-			0,
+			WS_POPUP,
 			0, 0, 400, 200, 
 			nullptr, nullptr, _hInstance, nullptr);
 

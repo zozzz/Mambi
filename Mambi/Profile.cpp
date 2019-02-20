@@ -4,14 +4,29 @@
 #include "Console.h"
 #include "Effect.h"
 #include "Config.h"
+#include "Application.h"
 
 
 namespace Mambi
 {
-	Profile::Profile(): _effect(NULL)
+	std::shared_ptr<Profile> Profile::New(const std::string& title, const json& cfg)
 	{
+		MAMBI_CFG_IS_STRING(cfg, "fgApplication", "profile.*");
+		std::string fgApplication = cfg["fgApplication"].get<std::string>();
+		
+		if (fgApplication == "game")
+		{
+			return std::shared_ptr<Profile>(new GameProfile(title));
+		}
+		else if (fgApplication == "any")
+		{
+			return std::shared_ptr<Profile>(new AnyProfile(title));
+		}
+		else 
+		{
+			return std::shared_ptr<Profile>(new SpecifiedProfile(title, fgApplication));
+		}
 	}
-
 
 	Profile::~Profile()
 	{		
@@ -22,101 +37,101 @@ namespace Mambi
 	}
 
 
-	bool Profile::Update(const std::string& title,  const json& cfg)
+	bool Profile::Update(const json& cfg)
 	{
-		_title = title;
+		Console::WriteLine("Profile::Update");
 
-		if (cfg.count("fgApplication")) 
-		{
-			if (cfg["fgApplication"] == "game") 
-			{
-				_detection = FGDetection::Game;
-			}
-			else if (cfg["fgApplication"] == "any")
-			{
-				_detection = FGDetection::Any;
-			}
-			else if (cfg["fgApplication"].is_string())
-			{
-				_detection = FGDetection::Specified;
-				_exe = cfg["fgApplication"].get<std::string>();
-			} 
-			else 
-			{
-				ErrorAlert("Error", "Unexpected 'fgApplication' property value");
-				return false;
-			}
-		}
-		else
-		{
-			ErrorAlert("Error", "Missing 'fgApplication' property from profile config");
-			return false;
-		}
-
-		MAMBI_CFG_VNUM_INT_RANGE(cfg, "priority", "profile", 0, 100)
+		MAMBI_CFG_VNUM_INT_RANGE(cfg, "priority", "profile.*", 0, 100);
 		_priority = cfg["priority"];
-
-		if (cfg.count("effect")) 
+		MAMBI_CFG_IS_OBJECT(cfg, "effect", "profile.*");
+		auto& effect = cfg["effect"];
+		MAMBI_CFG_IS_STRING(effect, "type", "profile.*.effect");
+		
+		Mambi::Effect* newEffect = Mambi::Effect::New(effect);
+		if (newEffect != NULL)
 		{
-			if (cfg["effect"].is_object())
+			if (_effect == NULL)
 			{
-				if (cfg["effect"].count("type"))
-				{
-					Mambi::Effect* newEffect = Mambi::Effect::New(cfg["effect"]);
-					if (newEffect != NULL)
-					{
-						if (_effect == NULL)
-						{
-							_effect = newEffect;
-						} 
-						else if (*_effect != *newEffect)
-						{
-							delete _effect;
-							_effect = newEffect;
-						}
-						else 
-						{
-							delete newEffect;
-						}
-					}
-				}
-				else
-				{
-					ErrorAlert("Error", "Missing 'type' property from effect config");
-					return false;
-				}
+				_effect = newEffect;
+			}
+			else if (*_effect != *newEffect)
+			{
+				delete _effect;
+				_effect = newEffect;
 			}
 			else
 			{
-				ErrorAlert("Error", "Incorrect type 'effect' option, must be an object");
-				return false;
+				delete newEffect;
 			}
 		}
-		else
-		{
-			ErrorAlert("Error", "Missing 'effect' property from profile config");
-			return false;
-		}
+
+		return true;
 	}
 
 
-	bool Profile::Test(HWND fgWindow)
+	bool SortByPriority(Profile* a, Profile* b)
 	{
-		switch (_detection)
+		return a->Priority() > b->Priority();
+	}
+
+
+	AutoProfile::Status AutoProfile::Detect(const Display* display)
+	{
+		Console::WriteLine("AutoProfile::Detect %s", display->HardwareId().c_str());
+		Status status = Status::Failed;
+
+		std::vector<Profile*> possible;
+
+		HWND fgWindow = GetForegroundWindow();
+		const char* exe = "";
+
+		for (auto p: Application::Profile().Profiles())
 		{
-		case FGDetection::Any:
-			return true;
-
-		case FGDetection::Game:
-			return DetectGame(fgWindow);
-
-		case FGDetection::Specified:
-			return DetectSpecified(fgWindow);
+			if (p.second->Test(display, fgWindow, exe))
+			{
+				possible.push_back(p.second.get());
+			}
 		}
+
+		// TODO: _selected = WeakRef
+
+		if (possible.size() > 0)
+		{
+			std::sort(possible.begin(), possible.end(), SortByPriority);
+			auto selected = Application::Profile().Profiles().at(possible[0]->Title());;
+
+			if (_selected != selected)
+			{
+				_selected = selected;
+				_title = "Auto: " + selected->Title();
+				//Console::WriteLine("Auto detected: %s(%d)", _effect->Type().c_str(), _effect->interval);
+				status = Status::Changed;
+				SendMessage(Application::WindowHandle(), WM_MAMBI_PROFILE_CHANGED, 0, 0);
+			}
+			else
+			{
+				status = Status::Success;
+			}			
+		}
+
+		//Console::WriteLine("AutoProfile::Detect return with %d", status);
+
+		return status;
+	}
+
+
+	bool GameProfile::Test(const Display* display, HWND fgWindow, const char* exe)
+	{
 		return false;
 	}
 
 
+	bool SpecifiedProfile::Test(const Display* display, HWND fgWindow, const char* exe)
+	{
+		return false;
+	}
+
+	/*
 	bool Profile::DetectGame(HWND fgWindow)
 	{
 		RECT desktop, wnd;
@@ -165,4 +180,5 @@ namespace Mambi
 
 		return result;
 	}
+	*/
 }

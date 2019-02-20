@@ -9,33 +9,32 @@ namespace Mambi
 	class ProfileManager
 	{
 	public:
-		ProfileManager();
-		~ProfileManager();
+		ProfileManager() {};
+		~ProfileManager() {};
 
-		inline auto& Active() const { return *_active; }
 		inline auto& Profiles() const { return _profiles; }
-		inline bool IsAutoDetect() const { return _isAutoDetect; }
-		void Update();
-		void Activate(int idx);
-		// void Watch();
-
-
+		
+		bool Update();
+		bool Activate(const Display* display, std::shared_ptr<Profile> profile);
+		bool Activate(const Display* display, const nullptr_t& profile);
+		bool Activate(const std::string& display, const std::string& profile);
+		bool Activate(const std::string& display, const nullptr_t& profile);
+		
 		ProfileManager(ProfileManager const&) = delete;
 		void operator=(ProfileManager const&) = delete;
 	private:
-		static DWORD WINAPI AutoDetectThread(LPVOID lpParam);
 
-		void DoUpdate();
-		void AutoDetect();
-		bool SetActive(Profile* profile);
-		void StartAutoDetect();
-		void StopAutoDetect();
+		void ReplaceProfile(std::shared_ptr<Profile> current, std::shared_ptr<Profile> replcae);
 
-		std::map<std::string, Profile> _profiles;
-		Profile* _active;
-		bool _isAutoDetect;		
-		HANDLE _mutex;
-		HANDLE _hAutoDetect;		
+		//static DWORD WINAPI AutoDetectThread(LPVOID lpParam);
+
+		//void DoUpdate();
+		//void AutoDetect();
+		//bool SetActive(Profile* profile);
+		//void StartAutoDetect();
+		//void StopAutoDetect();
+
+		std::map<std::string, std::shared_ptr<Profile>> _profiles;
 	};
 
 }

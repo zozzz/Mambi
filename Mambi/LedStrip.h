@@ -1,5 +1,8 @@
 #pragma once
 #include "stdafx.h"
+#include "Serial.h"
+#include "Color.h"
+#include "utils.h"
 
 
 namespace Mambi
@@ -11,28 +14,42 @@ namespace Mambi
 	public:
 		friend LedStripManager;
 
-		struct LedInfo {
+		typedef Serial<115200> ComPort;
+		typedef UINT16 IndexType;
 
+		static constexpr BYTE Header[] = {'M', 'A', 'M', 'B', 'I'};
+
+		enum Command 
+		{
+			CMDOff = 0x01,
+			CMDUpdate = 0x02,
+			CMDBrightness = 0x03
 		};
-
-		typedef std::vector<LedInfo> LightInfo;
 
 		LedStrip();
 		~LedStrip();
 
 
-		inline uint8_t HCount() const { return _countH; }
-		inline uint8_t VCount() const { return _countV; }
+		inline IndexType HCount() const { return _countH; }
+		inline IndexType VCount() const { return _countV; }
+		inline IndexType Count() const { return _count; };
 		bool Update(const json& cfg);
-		void Light(LightInfo& info);
-
+		void Light(const rgb_t* info, DWORD size) const;
+		void Off() const;
+		void SetBrightness(uint8_t brightness) const;
 
 		LedStrip(LedStrip const&) = delete;
 		void operator=(LedStrip const&) = delete;
 
-	protected:
-		uint8_t _countH;
-		uint8_t _countV;
+	private:
+		DWORD CreateMessage(Command cmd, BYTE* payload, uint8_t payloadSize);
+		bool Write(DWORD size) const;
+
+		ComPort* _port;
+		IndexType _countH;
+		IndexType _countV;
+		IndexType _count;
+		Buffer<BYTE> _message;
 	};	
 }
 

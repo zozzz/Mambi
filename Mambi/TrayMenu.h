@@ -2,21 +2,27 @@
 
 namespace Mambi
 {
-
 	class TrayMenu
 	{
 	public:
 		const enum Position {
 			Profile,
 			Enabled,
+			Calibrate,
 			Exit
+		};
+
+		struct ProfileItem {
+			std::string display;
+			std::string profile;
 		};
 
 		TrayMenu();
 		~TrayMenu();
 
 		UINT Show();
-		void Update();
+		void UpdateEnabled();
+		void UpdateCalibrate();
 		void UpdateProfile();
 
 
@@ -24,8 +30,12 @@ namespace Mambi
 		void operator=(TrayMenu const&) = delete;
 	private:
 		HMENU _menu;
-		HMENU _profileMenu;
-		std::string _profileMenuLabel;
+		HMENU _displayProfileMenu;
+		std::map<std::string, HMENU> _profileMenus;
+		std::vector<ProfileItem> _profileItems;
 	};
+
+
+	
 
 }

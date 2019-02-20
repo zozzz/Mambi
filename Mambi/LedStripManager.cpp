@@ -6,27 +6,15 @@
 
 namespace Mambi
 {
-
-	LedStripManager::LedStripManager()
-	{
-		Console::WriteLine("LedStripManager::LedStripManager");
-	}
-
-
-	LedStripManager::~LedStripManager()
-	{
-	}
-
-
 	bool LedStripManager::Update()
 	{
 		auto& cfg = Application::Config().Data();
-		
+
 		MAMBI_CFG_IS_OBJECT(cfg, "ledStrip", "config");
 
 		if (!LoadStrips(cfg["ledStrip"]))
 		{
-			_strips.empty();
+			_strips.clear();
 			return false;
 		}
 
@@ -38,16 +26,25 @@ namespace Mambi
 	{
 		std::vector<std::string> defined;
 
-		for (auto& el : items.items()) 
+		for (auto& el : items.items())
 		{
 			auto& key = el.key();
 			auto& item = el.value();
 			
-			if (!_strips[key].Update(item))
+			if (_strips.find(key) == _strips.end())
 			{
-				_strips.empty();
-				return false;
+				std::shared_ptr<LedStrip> strip(new LedStrip());
+				if (strip->Update(item))
+				{
+					_strips[key] = strip;
+				}
 			}
+			else
+			{
+				_strips[key]->Update(item);
+			}
+
+			defined.push_back(key);
 		}
 
 		// remove unpresented configs
@@ -66,11 +63,6 @@ namespace Mambi
 		}
 
 		return true;
-	}
-
-
-	void LedStripManager::Light(int id, LedStrip::LightInfo& info)
-	{
 	}
 
 }

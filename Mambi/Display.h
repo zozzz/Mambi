@@ -1,5 +1,10 @@
 #pragma once
 #include "stdafx.h"
+#include "DuplicatedOutput.h"
+#include "DisplaySample.h"
+#include "Profile.h"
+#include "LedStrip.h"
+#include "utils.h"
 
 /*
 
@@ -16,103 +21,58 @@ https://github.com/smasherprog/screen_capture_lite/blob/master/src/windows/DXFra
 
 namespace Mambi
 {
-	typedef float DisplayDim;
-
-
-	class Display;
-
-
-	enum SampleOrient {
-		Horizontal = 1,
-		Vertical = 1
-	};
-
-
-	enum SampleAlign {
-		Begin = 1,
-		End = 1		
-	};
-
-
-	struct SampleArea {
-		DisplayDim top;
-		DisplayDim left;
-		DisplayDim width;
-		DisplayDim height;
-	};
-
-
-	typedef std::vector<SampleArea> Samples;
-
-
-	template<SampleOrient Orient>
-	class DisplaySample {
-	public:
-		friend Display;
-
-		inline DisplaySample()
-			: _width(0), _height(0), _margin(0) { }
-
-		inline DisplaySample(DisplayDim w, DisplayDim h, DisplayDim m) 
-			: _width(w), _height(h), _margin(m) { }
-
-		template<SampleAlign Align>
-		const void Samples(Mambi::Samples& samples, DisplayDim size, float scale, uint8_t tcount) const;
-		
-		inline bool operator==(const DisplaySample& other) 
-		{
-			return other._width == _width && other._height == _height && other._margin == _margin;
-		}
-		inline bool operator!=(const DisplaySample& other)
-		{
-			return other._width != _width || other._height != _height || other._margin != _margin;
-		}
-
-	private:
-		DisplayDim _width;
-		DisplayDim _height;
-		DisplayDim _margin;
-	};
-
+	class Profile;
 
 	class Display
 	{
 	public:
-		struct SampleRequest {
-			DisplayDim width;
-			DisplayDim height;
-			uint8_t hcount;
-			uint8_t vcount;
-
-			bool operator() (const SampleRequest& a, const SampleRequest& b) const {
-				return a.width < b.width 
-					&& a.height < b.height 
-					&& a.hcount < b.hcount 
-					&& a.vcount < b.vcount;
-			}
-		};
-
-
-		static constexpr GUID ClassGuid = { 0x4d36e96e, 0xe325, 0x11ce, {0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18} };
+		//static constexpr GUID ClassGuid = { 0x4d36e96e, 0xe325, 0x11ce, {0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18} };
 
 		Display();
 		~Display();
 
 		inline auto& HardwareId() const { return _hardwareId; };
-		bool Update(const json& cfg);
-		const Mambi::Samples& Samples(const SampleRequest& request);
+		inline auto  Profile() const { return _profile; };
+		inline void  Profile(std::shared_ptr<Mambi::Profile> profile) { _profile = profile; };
+		inline auto& DupedOutput() const { return _output; };
+		inline auto& Samples() { return _samples; };
+		inline auto& NativeWidth() const { return _nativeW; }
+		inline auto& NativeHeight() const { return _nativeH; }
+		inline auto& DesktopWidth() const { return _output->Width(); }
+		inline auto& DesktopHeight() const { return _output->Height(); }
+		inline auto& LedStrip() const { return _ledStrip; };
+		inline auto& Colors() { return _colors; }
+		inline std::shared_ptr<DuplicatedOutput::Frame> Frame() const { 
+			if (!_frame)
+			{
+				const_cast<Display*>(this)->_frame = const_cast<Display*>(this)->_output->NewFrame();
+			}
+			return _frame; 
+		}		
 
+		void DupedOutput(DuplicatedOutput* output);
+		bool Update(const std::string& id, const json& cfg);
+		
 		Display(Display const&) = delete;
 		void operator=(Display const&) = delete;
 
 	private:
-		std::string _hardwareId;
-		std::string _ledStrip;
-		DisplayDim _nativeW;
-		DisplayDim _nativeH;
-		DisplaySample<SampleOrient::Horizontal> _sampleH;
-		DisplaySample<SampleOrient::Vertical> _sampleV;
+		static DWORD WINAPI EffectThread(LPVOID param);
 
-		std::map<SampleRequest, Mambi::Samples, SampleRequest> _cache;
+		bool UpdateSamples();
+		void StartEffectThread();
+		void StopEffectThread();
+
+		std::string _hardwareId;
+		std::shared_ptr<Mambi::Profile> _profile;
+		std::shared_ptr<Mambi::LedStrip> _ledStrip;
+		LedStrip::IndexType _stripOffset;
+		DisplayDim _nativeW;
+		DisplayDim _nativeH;		
+		Mambi::DisplaySamples _samples;		
+		DuplicatedOutput* _output;
+		std::shared_ptr<DuplicatedOutput::Frame> _frame;
+		HANDLE _hEffectThread;
+		Mambi::Buffer<rgb_t> _colors;
 	};
 }

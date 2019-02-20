@@ -2,63 +2,44 @@
 #include "ProfileManager.h"
 #include "Application.h"
 #include "Console.h"
-#include "Synchronisation.h"
+#include "utils.h"
 
 
 namespace Mambi
 {
-	ProfileManager::ProfileManager(): _active(NULL), _hAutoDetect(NULL)
-	{
-		_mutex = CreateMutex(NULL, FALSE, NULL);
-	}
-
-
-	ProfileManager::~ProfileManager()
-	{
-		CloseHandle(_mutex);
-		StopAutoDetect();
-	}
-
-
-	void ProfileManager::Update()
-	{
-		MAMBI_MLOCK_BEGIN(_mutex, INFINITE)
-			DoUpdate();
-		MAMBI_MLCOK_END_VOID(_mutex)	
-	}
-
-
-	void ProfileManager::DoUpdate()
+	bool ProfileManager::Update()
 	{
 		auto& cfg = Application::Config().Data();
 		std::vector<std::string> defined;
 
-		if (cfg.count("profile"))
+		MAMBI_CFG_IS_OBJECT(cfg, "profile", "config");
+
+		for (auto& el : cfg["profile"].items())
 		{
-			if (cfg["profile"].is_object())
+			auto& key = el.key();
+			auto& value = el.value();
+
+			defined.push_back(key);
+
+			auto profile = Profile::New(key, value);
+			if (_profiles.find(key) == _profiles.end())
 			{
-				for (auto& el : cfg["profile"].items())
-				{
-					auto& key = el.key();
-					auto& value = el.value();
-
-					defined.push_back(key);
-
-					auto& profile = _profiles[key];
-					profile.Update(key, value);
-
-					Console::WriteLine("Profile = %s", key.c_str());
-				}
+				_profiles[key] = profile;
+				profile->Update(value);
+			}
+			else if (profile->Type() != _profiles[key]->Type())
+			{
+				auto current = _profiles.at(key);
+				_profiles[key] = profile;
+				profile->Update(value);
+				ReplaceProfile(current, profile);				
 			}
 			else
 			{
-				ErrorAlert("Error", "The 'display' option must be an object.");
+				_profiles[key]->Update(value);
 			}
 		}
-		else
-		{
-			ErrorAlert("Error", "Missing 'profile' option in config.");
-		}
+			
 
 		// remove unpresented configs
 		std::vector<std::string> remove;
@@ -72,53 +53,69 @@ namespace Mambi
 
 		for (auto& el : remove)
 		{
-			Console::WriteLine("Erase %s", el.c_str());
+			ReplaceProfile(_profiles.at(el), std::shared_ptr<Profile>(new AutoProfile()));
 			_profiles.erase(el);
-		}
+		}	
 
-		bool isAutoDetect = true;
-		Profile* active = NULL;
+		return true;
+	}
 
-		if (cfg.count("selectedProfile") && cfg["selectedProfile"].is_string())
+
+	bool ProfileManager::Activate(const Display* display, std::shared_ptr<Profile> profile)
+	{
+		if (!display->Profile() || display->Profile()->Title() != profile->Title())
 		{
-			if (_profiles.find(cfg["selectedProfile"]) != _profiles.end())
-			{
-				active = &_profiles[cfg["selectedProfile"]];
-				isAutoDetect = false;
-			}
-			else
-			{
-				ErrorAlert("Error", "Can't select the given profile, because is missing from profiles definition.");
-			}
+			const_cast<Display*>(display)->Profile(profile);
+			SendMessage(Application::WindowHandle(), WM_MAMBI_PROFILE_CHANGED, 0, 0);
+			return true;
 		}
+		return false;
+	}
 
-		bool eventRequired = false;
-		if (_isAutoDetect != isAutoDetect)
+	bool ProfileManager::Activate(const Display* display, const nullptr_t& profile)
+	{
+		if (!display->Profile() || display->Profile()->Type() != ProfileType::Auto)
 		{
-			eventRequired = true;
-			_isAutoDetect = isAutoDetect;
-			if (isAutoDetect)
-			{
-				StartAutoDetect();
-			}
-			else
-			{
-				StopAutoDetect();
-			}
+			const_cast<Display*>(display)->Profile(std::shared_ptr<Mambi::Profile>(new AutoProfile()));
+			SendMessage(Application::WindowHandle(), WM_MAMBI_PROFILE_CHANGED, 0, 0);
+			return true;
 		}
+		return false;
+	}
 
-		if (active != NULL)
+	
+	bool ProfileManager::Activate(const std::string& display, const std::string& profile)
+	{
+		auto& disp = Application::Display().Get(display);
+		return Activate(&disp, _profiles.at(profile));
+	}
+
+	bool ProfileManager::Activate(const std::string& display, const nullptr_t& profile)
+	{
+		auto& disp = Application::Display().Get(display);
+		return Activate(&disp, nullptr);
+	}
+
+
+	void ProfileManager::ReplaceProfile(std::shared_ptr<Profile> current, std::shared_ptr<Profile> replcae)
+	{
+		bool changed = false;
+		for (auto& d : Application::Display().DisplayMap())
 		{
-			eventRequired = !SetActive(active);
+			if (d.second.Profile() == current)
+			{
+				const_cast<Display*>(&d.second)->Profile(replcae);
+				changed = true;
+			}
 		}
 
-		if (eventRequired && _active != NULL)
+		if (changed)
 		{
 			SendMessage(Application::WindowHandle(), WM_MAMBI_PROFILE_CHANGED, 0, 0);
 		}
 	}
 
-	
+#if 0
 	void ProfileManager::StartAutoDetect()
 	{
 		if (_hAutoDetect == NULL)
@@ -181,9 +178,12 @@ namespace Mambi
 		ProfileManager* self = (ProfileManager*)lpParam;
 		while (true)
 		{
-			MAMBI_MLOCK_BEGIN(self->_mutex, INFINITE)
+			AcquireMutex lock(Application::Config().Mutex());
+			if (lock)
+			{
 				self->AutoDetect();
-			MAMBI_MLCOK_END(self->_mutex, FALSE)
+			}			
+			lock.Release();
 			Sleep(500);
 		}
 	}
@@ -213,6 +213,11 @@ namespace Mambi
 		Console::WriteLine("FgChanged %S", wnd_title);
 		*/
 
+		for (auto& disp: Application::Display().DisplayMap())
+		{
+
+		}
+
 		std::vector<Profile*> possible;
 
 		for (auto& item : _profiles)
@@ -229,4 +234,6 @@ namespace Mambi
 			SetActive(possible[0]);
 		}
 	}
+
+#endif
 }

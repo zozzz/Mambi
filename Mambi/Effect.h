@@ -1,12 +1,15 @@
 #pragma once
 #include "stdafx.h"
 #include "Color.h"
+#include "Display.h"
 
 // https://github.com/MrBoe/bambilight
 
 namespace Mambi
 {
+	class Display;
 	
+
 	class Effect
 	{
 	public:
@@ -16,20 +19,23 @@ namespace Mambi
 		virtual ~Effect();
 
 		virtual bool Update(const json& cfg) = 0;
-		virtual void Tick() = 0;
-
+		virtual void Init(Display* display) = 0;
+		virtual void Tick(Display* display) = 0;
+		
 		virtual bool Equals(const Effect& other) const = 0;
 		inline bool operator==(const Effect& other) const 
 		{
-			return other._type == _type && Equals(other);
+			return other._type == _type && interval == other.interval && Equals(other);
 		}
 		inline bool operator!=(const Effect& other) const
 		{
-			return other._type != _type || !Equals(other);
+			return other._type != _type || interval != other.interval || !Equals(other);
 		}
 		
 
 		inline auto& Type() const { return _type; }
+
+		UINT16 interval;
 
 	protected:
 		std::string _type;
@@ -41,46 +47,35 @@ namespace Mambi
 		using Effect::Effect;
 
 		bool Update(const json& cfg);
-		void Tick();
+		void Init(Display* display);
+		void Tick(Display* display);
 		inline bool Equals(const Effect& other) const
 		{
-			return static_cast<const Effect_Static&>(other)._color == _color;
+			return static_cast<const Effect_Static&>(other).color == color 
+				&& static_cast<const Effect_Static&>(other).brightness == brightness;
 		}
 
-	protected:
-		
-		color_t _color;
+	protected:		
+		rgb_t color;
+		uint8_t brightness;
 	};
 
 
 
 	class Effect_Ambilight : public Effect {
 	public:
-		struct Spot {
-			enum Orient {
-				Horizontal = 1,
-				Vertical = 2,
-			};
-
-			Orient orient;
-			uint8_t count;
-			uint16_t margin;
-			uint16_t width;
-			uint16_t height;
-		};
-
 		using Effect::Effect;
 
 		bool Update(const json& cfg);
-		void Tick();
+		void Init(Display* display);
+		void Tick(Display* display);
 		inline bool Equals(const Effect& other) const
 		{
-			return false;
+			return true;
 		}
 
 	protected:
-		Spot hspot;
-		Spot vspot;		
+		uint8_t brightness;
 	};
 
 
@@ -89,17 +84,25 @@ namespace Mambi
 		using Effect::Effect;
 
 		bool Update(const json& cfg);
-		void Tick();
+		void Init(Display* display);
+		void Tick(Display* display);
 		inline bool Equals(const Effect& other) const
 		{
-			return false;
+			return duration == static_cast<const Effect_Breath&>(other).duration 
+				&& maxBrightness == static_cast<const Effect_Breath&>(other).maxBrightness 
+				&& minBrightness == static_cast<const Effect_Breath&>(other).minBrightness;
 		}
 
 	protected:
 		unsigned int duration;
-		uint8_t max;
-		uint8_t min;
-		
+		uint8_t maxBrightness;
+		uint8_t minBrightness;
+		rgb_t color;
+	
+	private:
+		UINT16 _currentFrame;
+		UINT16 _frameCount;
+		float _stepBrightness;
 	};
 
 

@@ -14,7 +14,10 @@
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <psapi.h>
+#include <atlbase.h>
+#include <d3d11.h>
 #include <dxgi.h>
+#include <dxgi1_2.h>
 
 // C RunTime Header Files
 #include <stdlib.h>
@@ -30,10 +33,14 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <chrono>
 
 // External libraries
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
+
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "d3d11.lib")
 
 // reference additional headers your program requires here

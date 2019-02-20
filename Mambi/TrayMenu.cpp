@@ -10,11 +10,12 @@ namespace Mambi
 	TrayMenu::TrayMenu()
 	{
 		_menu = CreatePopupMenu();
-		_profileMenu = CreatePopupMenu();
+		_displayProfileMenu = CreatePopupMenu();
 
-		InsertMenu(_menu, Position::Profile, MF_BYPOSITION | MF_POPUP, (UINT_PTR)_profileMenu, Resources::TrayProfile().Data());
+		InsertMenu(_menu, Position::Profile, MF_BYPOSITION | MF_POPUP, (UINT_PTR)_displayProfileMenu, Resources::TrayProfile().Data());
 		InsertMenu(_menu, Position::Enabled, MF_BYPOSITION | MF_STRING, IDM_CHANGE_ENABLE, Resources::TrayEnabled().Data());
-		InsertMenu(_menu, Position::Exit, MF_BYPOSITION | MF_STRING, IDM_EXIT, Resources::TrayExit().Data());		
+		InsertMenu(_menu, Position::Calibrate, MF_BYPOSITION | MF_STRING, IDM_CALIBRATE_TOGGLE, Resources::TrayCalibrateDisabled().Data());
+		InsertMenu(_menu, Position::Exit, MF_BYPOSITION | MF_STRING, IDM_EXIT, Resources::TrayExit().Data());	
 	}
 
 
@@ -25,9 +26,15 @@ namespace Mambi
 			_menu = NULL;
 		}
 
-		if (_profileMenu != NULL) {
-			DestroyMenu(_profileMenu);
-			_profileMenu = NULL;
+		for (auto& item : _profileMenus)
+		{
+			DestroyMenu(item.second);			
+		}
+		_profileMenus.clear();
+
+		if (_displayProfileMenu != NULL) {
+			DestroyMenu(_displayProfileMenu);
+			_displayProfileMenu = NULL;
 		}
 	}
 
@@ -39,11 +46,28 @@ namespace Mambi
 
 		UINT res = TrackPopupMenu(_menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_LEFTBUTTON, mouse.x, mouse.y, 0, Application::WindowHandle(), NULL);
 		
+		if (IDM_TPROFILE_MIN <= res && res < IDM_TPROFILE_MAX)
+		{
+			ProfileItem pi = _profileItems[res - IDM_TPROFILE_MIN];
+			std::string cfgPath = "/display/" + pi.display + "/profile";
+
+			if (pi.profile.size() == 0)
+			{
+				Application::Config().SetPath(cfgPath.c_str(), nullptr);
+			}
+			else
+			{
+				Application::Config().SetPath(cfgPath.c_str(), pi.profile);				
+			}			
+
+			return res;
+		}
+
 		return res;	
 	}
 
 
-	void TrayMenu::Update()
+	void TrayMenu::UpdateEnabled()
 	{
 		if (Application::UserEnabled()) 
 		{
@@ -55,36 +79,122 @@ namespace Mambi
 		}
 	}
 
+	void TrayMenu::UpdateCalibrate()
+	{
+		if (Application::Calibrate().Enabled())
+		{
+			ModifyMenu(_menu, Position::Calibrate, MF_BYPOSITION | MF_STRING, IDM_CALIBRATE_TOGGLE, Resources::TrayCalibrateEnabled().Data());
+		}
+		else
+		{
+			ModifyMenu(_menu, Position::Calibrate, MF_BYPOSITION | MF_STRING, IDM_CALIBRATE_TOGGLE, Resources::TrayCalibrateDisabled().Data());
+		}
+	}
+
 	void TrayMenu::UpdateProfile()
 	{
-		int count = GetMenuItemCount(_profileMenu);
-		while (count-- > 0) 
+		_profileItems.clear();
+		auto& displays = Application::Display().DisplayMap();
+		std::vector<std::string> remove;
+
+		for (auto& p : _profileMenus) 
 		{
-			DeleteMenu(_profileMenu, 0, MF_BYPOSITION);
+			if (displays.find(p.first) == displays.end())
+			{
+				remove.push_back(p.first);
+			}
 		}
 
-		bool isAutoDetect = Application::Profile().IsAutoDetect();
-		InsertMenu(_profileMenu, 0, MF_BYPOSITION | MF_STRING | (isAutoDetect ? MF_CHECKED : 0), IDM_TPROFILE_MIN, Resources::Auto().Data());
-
-		_profileMenuLabel = "Profile";
-		if (isAutoDetect)
-		{
-			auto& active = Application::Profile().Active();
-			_profileMenuLabel += ": Auto (" + active.Title() + ")";
+		for (auto& k: remove)
+		{	
+			DestroyMenu(_profileMenus[k]);
+			_profileMenus.erase(k);
 		}
 
-		int pos = 1;
-		for (auto& item : Application::Profile().Profiles()) 
-		{			
-			bool isActive = !isAutoDetect && Application::Profile().Active().Title() == item.second.Title();
+
+		int displayIndex = 0;
+		int menuItemCommand = IDM_TPROFILE_MIN;
+		for (auto& display: displays)
+		{
+			if (_profileMenus.find(display.first) == _profileMenus.end())
+			{
+				_profileMenus[display.first] = CreatePopupMenu();				
+			}
+			
+
+			HMENU profileMenu = _profileMenus[display.first];
+			int menuCount = GetMenuItemCount(profileMenu);
+			int menuIndex = 0;
+			bool isActive = display.second.Profile() && display.second.Profile()->Type() == ProfileType::Auto;
+			std::string activeLabel;
+
+
+			if (menuIndex >= menuCount) 
+			{
+				InsertMenu(profileMenu, menuIndex, MF_BYPOSITION | MF_STRING | (isActive ? MF_CHECKED : 0), menuItemCommand, Resources::Auto().Data());
+			}
+			else
+			{
+				ModifyMenu(profileMenu, menuIndex, MF_BYPOSITION | MF_STRING | (isActive ? MF_CHECKED : 0), menuItemCommand, Resources::Auto().Data());
+			}
+			
+			menuIndex++;
+			menuItemCommand++;
+			_profileItems.push_back({ display.first, "" });
+
 			if (isActive)
 			{
-				_profileMenuLabel += ": " + item.second.Title();
-			}			
+				activeLabel = display.second.Profile()->Title();
+			}
 
-			InsertMenuA(_profileMenu, pos++, MF_BYPOSITION | MF_STRING | (isActive ? MF_CHECKED : 0), IDM_TPROFILE_MIN + pos, item.second.Title().c_str());
+			for (auto& p: Application::Profile().Profiles())
+			{
+				isActive = display.second.Profile() == p.second;
+				
+				if (isActive)
+				{
+					activeLabel = p.second->Title().c_str();
+				}
+
+				if (menuIndex >= menuCount)
+				{
+					InsertMenuA(profileMenu, menuIndex, MF_BYPOSITION | MF_STRING | (isActive ? MF_CHECKED : 0), menuItemCommand, p.second->Title().c_str());
+				}
+				else
+				{
+					ModifyMenuA(profileMenu, menuIndex, MF_BYPOSITION | MF_STRING | (isActive ? MF_CHECKED : 0), menuItemCommand, p.second->Title().c_str());
+				}
+
+				menuIndex++;
+				menuItemCommand++;
+				_profileItems.push_back({ display.first, p.second->Title() });
+			}
 		}
 
-		ModifyMenuA(_menu, Position::Profile, MF_BYPOSITION | MF_POPUP, (UINT_PTR)_profileMenu, _profileMenuLabel.c_str());
+
+		// remove all display menu item
+		int count = GetMenuItemCount(_displayProfileMenu);
+		size_t pmenuCount = _profileMenus.size();
+		while (count-- > pmenuCount)
+		{
+			DeleteMenu(_displayProfileMenu, 0, MF_BYPOSITION);
+		}
+
+		// todo: _profileMenus.size() == 1, display only profiles
+
+		int i = 0;
+		for (auto& m: _profileMenus)
+		{
+			if (i > count)
+			{
+				InsertMenuA(_displayProfileMenu, i, MF_BYPOSITION | MF_POPUP, (UINT_PTR)m.second, m.first.c_str());
+			}
+			else
+			{
+				ModifyMenuA(_displayProfileMenu, i, MF_BYPOSITION | MF_POPUP, (UINT_PTR)m.second, m.first.c_str());
+			}
+			
+			i++;
+		}		
 	}
 }

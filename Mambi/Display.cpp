@@ -2,27 +2,48 @@
 #include "Display.h"
 #include "Console.h"
 #include "Config.h"
+#include "Application.h"
+#include "utils.h"
+
+
+#define MAMBI_AUTODETECT_INTERVAL 500
 
 
 namespace Mambi
 {
 
-	Display::Display()
+	Display::Display(): _output(NULL), _profile(NULL), _hEffectThread(NULL), _frame(NULL)
 	{		
 	}
 
 
 	Display::~Display()
 	{
+		StopEffectThread();
+		DupedOutput(NULL);		
 	}	
 
 
-	bool Display::Update(const json& cfg)
+	void Display::DupedOutput(DuplicatedOutput* output)
 	{
+		if (_output != NULL)
+		{
+			delete _output;
+		}
+		_output = output;
+		UpdateSamples();
+	}
+
+
+	bool Display::Update(const std::string& id, const json& cfg)
+	{
+		_hardwareId = id;
 		MAMBI_CFG_VNUM_INT_RANGE(cfg, "width", "display.*", 0, 65535);
 		MAMBI_CFG_VNUM_INT_RANGE(cfg, "height", "display.*", 0, 65535);
-		MAMBI_CFG_IS_STRING(cfg, "ledStrip", "display.*");
-		MAMBI_CFG_IS_OBJECT(cfg, "samples", "display.*");
+		MAMBI_CFG_IS_OBJECT(cfg, "ledStrip", "display.*");
+		auto& ledStrip = cfg["ledStrip"];
+		MAMBI_CFG_IS_STRING(ledStrip, "name", "display.*.ledStrip");
+		MAMBI_CFG_VNUM_INT_RANGE(ledStrip, "offset", "display.*.ledStrip", -1000, 1000);		
 		auto& samples = cfg["samples"];
 		MAMBI_CFG_IS_OBJECT(samples, "horizontal", "display.*.samples");
 		auto& samplesH = samples["horizontal"];
@@ -35,89 +56,168 @@ namespace Mambi
 		MAMBI_CFG_VNUM_INT_RANGE(samplesV, "height", "display.*.samples.vertical", 0, 65535);
 		MAMBI_CFG_VNUM_INT_RANGE(samplesV, "margin", "display.*.samples.horizontal", 0, 65535);
 
-		DisplaySample<SampleOrient::Horizontal> sh(samplesH["width"], samplesH["height"], samplesH["margin"]);
-		DisplaySample<SampleOrient::Vertical> sv(samplesV["width"], samplesV["height"], samplesV["margin"]);
+		_nativeW = cfg["width"];
+		_nativeH = cfg["height"];
 
-		if (_nativeW != cfg["width"] 
-			|| _nativeH != cfg["height"] 
-			|| _ledStrip != cfg["ledStrip"] 
-			|| _sampleH != sh 
-			|| _sampleV != sv)
+		DisplaySampleFactory<SampleOrient::Horizontal> sh(samplesH["width"], samplesH["height"], samplesH["margin"]);
+		DisplaySampleFactory<SampleOrient::Vertical> sv(samplesV["width"], samplesV["height"], samplesV["margin"]);
+		_samples = DisplaySamples(sh, sv);
+
+		_ledStrip = Application::Led().Get(ledStrip["name"]);
+		_stripOffset = ledStrip["offset"];
+
+		if (!_colors.EnsureSize(_ledStrip->Count()))
 		{
-			_cache.empty();
-			_sampleH = sh;
-			_sampleV = sv;
-			_nativeW = cfg["width"];
-			_nativeH = cfg["height"];
-			_ledStrip = cfg["ledStrip"].get<std::string>();
+			ErrorAlert("Error", "Out of memory");
+			return false;
 		}
+
+		if (UpdateSamples())
+		{
+			StartEffectThread();
+			return true;
+		}
+		return false;
+	}
+
+
+	bool Display::UpdateSamples()
+	{
+		if (_output == NULL)
+		{
+			return true;
+		}
+
+		_samples.Update(DesktopWidth(), DesktopHeight(), _nativeW, _nativeH, _ledStrip->HCount(), _ledStrip->VCount());
+		_samples.Move(_stripOffset);
 
 		return true;
 	}
 
-	const Mambi::Samples& Display::Samples(const SampleRequest& request)
+
+	void Display::StartEffectThread()
 	{
-		auto cached = _cache.find(request);
-		if (cached != _cache.end()) 
+		if (_hEffectThread == NULL)
 		{
-			return cached->second;
-		}
-		else
-		{
-			Mambi::Samples& samples = _cache[request];
-
-			_sampleH.Samples<SampleAlign::Begin>(samples, request.width, request.width / _nativeW, request.hcount);
-			_sampleH.Samples<SampleAlign::End>(samples, request.width, request.width / _nativeW, request.hcount);
-			_sampleV.Samples<SampleAlign::Begin>(samples, request.height, request.height / _nativeH, request.vcount);
-			_sampleV.Samples<SampleAlign::End>(samples, request.height, request.height / _nativeH, request.vcount);
-
-			return samples;
+			_hEffectThread = CreateThread(NULL, 0, EffectThread, this, 0, NULL);
 		}
 	}
 
 
-	template<SampleOrient Orient>
-	template<SampleAlign Align>
-	const void DisplaySample<Orient>::Samples(Mambi::Samples& samples, DisplayDim size, float scale, uint8_t tcount) const
+	void Display::StopEffectThread()
 	{
-		float lsize = size * scale;
-		float lwidth = _width * scale;
-		float lheight = _height * scale;
-		lsize -= _margin * scale * 2;
-
-		if (Orient == SampleOrient::Horizontal)
+		if (_hEffectThread != NULL)
 		{
-			int mcount = (int)floor(lsize / lwidth);
-			int count = min(tcount, mcount);
-			int gap = (int)floor((lsize - (lwidth * count)) / (count - 1));
-			samples.resize(samples.size() + count);
-			
-			DisplayDim x = _margin * scale;
-			for (int i = 0; i < count; i++) 
-			{
-				samples[i].top = (Align == SampleAlign::Begin ? 0 : floor(lsize - lheight));
-				samples[i].left = x;
-				samples[i].width = floor(lwidth);
-				samples[i].height = floor(lheight);				
-				x += lwidth + gap;
-			}
+			TerminateThread(_hEffectThread, 0);
+			CloseHandle(_hEffectThread);
+			_hEffectThread = NULL;
 		}
-		else if (Orient == SampleOrient::Vertical)
+	}
+
+
+	DWORD WINAPI Display::EffectThread(LPVOID param)
+	{
+		Console::WriteLine("Display::EffectThread");
+
+		Display* display = reinterpret_cast<Display*>(param);
+		Mambi::Profile* profile;
+		Mambi::Effect* effect = NULL;
+		Mambi::Effect* newEffect = NULL;
+		auto detectTime = std::chrono::high_resolution_clock::now();
+		auto effectTime = std::chrono::high_resolution_clock::now();
+		int elapsed;
+		INT16 interval;
+
+		while (true)
 		{
-			int mcount = (int)floor(lsize / lheight);
-			int count = min(tcount, mcount);
-			int gap = (int)floor((lsize - (lheight * count)) / (count - 1));
-			samples.resize(samples.size() + count);
-			
-			DisplayDim y = _margin * scale;
-			for (int i = 0; i < count; i++)
+			AcquireMutex lock(Application::Config().Mutex(), 100);
+			if (lock)
 			{
-				samples[i].top = y;
-				samples[i].left = (Align == SampleAlign::Begin ? 0 : floor(lsize - lwidth));
-				samples[i].width = floor(lwidth);
-				samples[i].height = floor(lheight);
-				y += lheight + gap;
+				auto now = std::chrono::high_resolution_clock::now();
+				profile = display->_profile.get();
+				
+				if (profile->Type() == ProfileType::Auto)
+				{
+					elapsed = (int) std::chrono::duration_cast<std::chrono::milliseconds>(now - detectTime).count();
+					if (((AutoProfile*)profile)->Selected() == nullptr || elapsed >= MAMBI_AUTODETECT_INTERVAL)
+					{
+						//Console::WriteLine("AutoDetect... %d", elapsed);
+						detectTime = std::chrono::high_resolution_clock::now();
+						auto status = ((AutoProfile*)profile)->Detect(display);
+						
+						switch (status)
+						{
+						case AutoProfile::Status::Failed:
+							//Console::WriteLine("AutoProfile::Status::Failed");
+							// if autodetect failed, just wait for next tick to detect the correct profile
+							Sleep(50);
+							continue;
+
+						case AutoProfile::Status::Success:
+							//Console::WriteLine("AutoProfile::Status::Success");
+							// do nothing, just continue processing the effect
+							break;
+
+						case AutoProfile::Status::Changed:
+							//Console::WriteLine("AutoProfile::Status::Changed");
+							break;
+						}						
+					}
+				}	
+				
+				if (effect == NULL)
+				{
+					effect = profile->Effect();
+					effect->Init(display);					
+				}
+				else
+				{
+					newEffect = profile->Effect();
+					if (newEffect != effect)
+					{
+						effect = newEffect;
+						effect->Init(display);						
+					}
+					else if (*newEffect != *effect)
+					{
+						effect->Init(display);						
+					}
+				}
+
+				interval = effect->interval;
+				elapsed = (int) std::chrono::duration_cast<std::chrono::milliseconds>(now - effectTime).count();				
+
+				if (elapsed >= interval)
+				{
+					effect->Tick(display);
+
+					now = std::chrono::high_resolution_clock::now();
+					elapsed = (int)std::chrono::duration_cast<std::chrono::milliseconds>(now - effectTime).count();
+					effectTime = std::chrono::high_resolution_clock::now();					
+
+					lock.Release();
+					
+					interval = (interval - (elapsed - interval));
+					interval = max(0, interval);					
+				}
+				else
+				{
+					lock.Release();					
+					interval -= elapsed;					
+				}			
+
+				if (profile->Type() == ProfileType::Auto)
+				{
+					interval = min(MAMBI_AUTODETECT_INTERVAL, interval);					
+				}
+				
+				if (interval > 10)
+				{
+					//Console::WriteLine("Sleep %d", interval);
+					Sleep(interval);
+				}
 			}
 		}
 	}
+
 }

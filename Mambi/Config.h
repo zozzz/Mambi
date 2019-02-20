@@ -60,6 +60,10 @@ namespace Mambi
 		inline auto& Directory() const { return _appDataPath; };
 		inline auto& Path() const { return _configPath; };
 		inline auto& Data() const { return _data; }
+		inline auto& Mutex() const { return _mutex; }
+		inline auto& GetPath(const char* path) const { return _data[json::json_pointer(path)]; }
+		inline void SetPath(const char* path, json value) { _data[json::json_pointer(path)] = value; WriteOut(); }
+
 		void Init();
 		void Load();
 		void WriteUser(const char* prop, json value);
@@ -71,10 +75,12 @@ namespace Mambi
 
 	private:		
 		void Watch();
+		void WriteOut();
 
 		std::wstring _appDataPath;
 		std::wstring _configPath;
 		HANDLE _hFileWatcher;
+		HANDLE _mutex;
 		json _data;
 	};
 

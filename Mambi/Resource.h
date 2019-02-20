@@ -13,8 +13,12 @@
 #define IDS_AUTO                        108
 #define IDC_MAMBI                       109
 #define IDD_MAMBI_TRAY                  110
+#define IDS_CALIBRATE_ENABLED           110
 #define IDM_EXIT                        111
+#define IDS_CALIBRATE_DISABLED          111
+#define IDC_CALIBRATE                   112
 #define IDM_CHANGE_ENABLE               113
+#define IDM_CALIBRATE_TOGGLE            116
 #define IDR_MAINFRAME                   128
 #define IDI_MAMBI_GS                    132
 #define IDI_ICON1                       133
@@ -31,6 +35,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1000
-#define _APS_NEXT_SYMED_VALUE           116
+#define _APS_NEXT_SYMED_VALUE           117
 #endif
 #endif

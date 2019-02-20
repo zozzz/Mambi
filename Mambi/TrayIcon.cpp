@@ -54,13 +54,9 @@ namespace Mambi
 				Application::UserEnabled(!Application::UserEnabled());
 				break;
 
-			default:
-				if (IDM_TPROFILE_MIN <= cmd && cmd < IDM_TPROFILE_MAX)
-				{
-					Application::Profile().Activate(cmd - IDM_TPROFILE_MIN - 1);
-					Console::WriteLine("TrayIcon IDM_TRAY_PROFILE %d", cmd - IDM_TPROFILE_MIN - 1);
-					return 1;
-				}			
+			case IDM_CALIBRATE_TOGGLE:
+				Application::Calibrate().Enabled(!Application::Calibrate().Enabled(), true);
+				break;
 			}
 		}
 		//Console::WriteLine("TrayIcon (%d, %d, %d)", message, wParam, lParam);
@@ -80,7 +76,7 @@ namespace Mambi
 		}
 
 		Shell_NotifyIcon(NIM_MODIFY, &data);
-		Menu().Update();
+		Menu().UpdateEnabled();
 	}
 
 }

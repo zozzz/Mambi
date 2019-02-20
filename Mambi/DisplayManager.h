@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "Display.h"
+#include "DuplicatedOutput.h"
 
 
 namespace Mambi
@@ -8,14 +9,25 @@ namespace Mambi
 	class DisplayManager
 	{
 	public:
-		DisplayManager();
-		~DisplayManager();
+		typedef std::map<std::string, Display> Displays;
+		typedef std::map<UINT, std::shared_ptr<DuplicatedOutput::Device>> AdpaterDevices;
+
+		DisplayManager() {};
+		~DisplayManager() {};
+
+		inline auto& DisplayMap() { return _displays; }
+		inline auto& Get(const std::string& hardwereId) const { return _displays.at(hardwereId); }
 
 		bool Update();
+		bool UpdateOutputs();
 
 		DisplayManager(DisplayManager const&) = delete;
 		void operator=(DisplayManager const&) = delete;
 	private:
-		std::map<std::string, Display> _displays;
+		std::shared_ptr<DuplicatedOutput::Device> GetDevice(CComPtr<IDXGIAdapter1> adapter);
+		bool UpdateDisplays(CComPtr<IDXGIAdapter1> adapter, DisplayManager::Displays& displays);
+
+		Displays _displays;
+		AdpaterDevices _devices;
 	};
 }
