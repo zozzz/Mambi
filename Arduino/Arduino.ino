@@ -30,12 +30,12 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // CONFIG SECTION
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define LED_NUM     10
+#define LED_NUM     68
 #define LED_TYPE    NEOPIXEL
 #define LED_PIN     3
 #define COLOR_TYPE  CRGB
 #define COLOR_SIZE  3
-#define BRIGHTNESS  10
+#define BRIGHTNESS  200
 #define TIMEOUT     5000 // ms
 
 
@@ -43,17 +43,20 @@
 // PROGRAM SECTION
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-COLOR_TYPE leds[LED_NUM];
+#define MAX_UPDATE_PAYLOAD_SIZE (LED_NUM * COLOR_SIZE)
 
+COLOR_TYPE leds[LED_NUM];
 
 // HEADER: MAMBI[LENGTH][CMD_*]
 byte HEADER[] = { 0x4D, 0x41, 0x4D, 0x42, 0x49 }; // MAMBI
+byte UPDATE_BUFFER[MAX_UPDATE_PAYLOAD_SIZE];
 #define HEADER_LENGTH    5
 #define HEADER_READ_FAIL 0x00
 #define CMD_TURN_OFF     0x01
 #define CMD_UPDATE       0x02
 #define CMD_BRIGHTNESS   0x03
 #define IS_TIMEOUT()     (millis() - beginTime >= TIMEOUT)
+#define min(a, b)        ((a) > (b) ? (b) : (a))
 
 unsigned long beginTime;
 uint8_t headerReaded = 0;
@@ -67,6 +70,9 @@ void setup() {
     FastLED.addLeds<LED_TYPE, LED_PIN>(leds, LED_NUM);
     FastLED.setBrightness(BRIGHTNESS);
     Serial.begin(115200);
+    Serial.setTimeout(TIMEOUT);
+
+    // while (!Serial); // Wait for serial port to ready
 }
 
 
@@ -100,8 +106,12 @@ void loop()
 
     while (payloadConsumed < payloadSize)
     {
-        Serial.read();
-        payloadConsumed++;
+        if (Serial.available() > 0) {
+            Serial.read();
+            payloadConsumed++;
+        } else {
+            Serial.peek();
+        }
     }
 }
 
@@ -156,17 +166,13 @@ void CommandTurnOff()
 
 void CommandUpdate()
 {
-    payloadConsumed = 0;
+    payloadConsumed = Serial.readBytes(UPDATE_BUFFER, min(MAX_UPDATE_PAYLOAD_SIZE, payloadSize));
     uint8_t ledNum = 0;
-    while (payloadConsumed < payloadSize && ledNum < LED_NUM)
+    for (; ledNum < LED_NUM ; ++ledNum)
     {
-        ReadColor(&leds[ledNum++]);
-        payloadConsumed += COLOR_SIZE;
-    }
-
-    while (ledNum < LED_NUM)
-    {
-        leds[ledNum++] = COLOR_TYPE::Black;
+        leds[ledNum].r = UPDATE_BUFFER[ledNum * COLOR_SIZE];
+        leds[ledNum].g = UPDATE_BUFFER[ledNum * COLOR_SIZE + 1];
+        leds[ledNum].b = UPDATE_BUFFER[ledNum * COLOR_SIZE + 2];
     }
 
     FastLED.show();
@@ -182,21 +188,4 @@ void CommandBrightness()
         FastLED.show();
     }
     beginTime = millis();
-}
-
-
-void ReadColor(COLOR_TYPE* into)
-{
-    if (Serial.available() >= COLOR_SIZE)
-    {
-        into->r = Serial.read();
-        into->g = Serial.read();
-        into->b = Serial.read();
-    }
-    else
-    {
-        into->r = 0;
-        into->g = 0;
-        into->b = 0;
-    }
 }

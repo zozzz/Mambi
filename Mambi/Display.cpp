@@ -72,11 +72,19 @@ namespace Mambi
 			return false;
 		}
 
-		if (UpdateSamples())
+		if (Application::Enabled()) 
 		{
-			StartEffectThread();
-			return true;
+			if (UpdateSamples())
+			{
+				StartEffectThread();
+				return true;
+			}
 		}
+		else 
+		{
+			StopEffectThread();
+		}
+		
 		return false;
 	}
 
@@ -213,7 +221,7 @@ namespace Mambi
 				
 				if (interval > 10)
 				{
-					//Console::WriteLine("Sleep %d", interval);
+					//Console::WriteLine("Sleep %d // %d", interval, effect->interval);
 					Sleep(interval);
 				}
 			}

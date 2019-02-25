@@ -117,9 +117,20 @@ namespace Mambi
 			D3D11_TEXTURE2D_DESC _deskDesc;
 
 			ID3D11Texture2D* _stagingText;
-			//CComPtr<IDXGIKeyedMutex> _sharedTextMutex;
+			
 			ID3D11Texture2D* _samplesText;
+
+			
+			D3D11_TEXTURE2D_DESC _sharedTextDesc;
+			ID3D11Texture2D* _sharedText;
+			CComPtr<IDXGIKeyedMutex> _sharedTextMutex;
+
+
+			D3D11_TEXTURE2D_DESC _sharedSurfDesc;
+			ID3D11Texture2D* _sharedSurf;
 			CComPtr<IDXGIKeyedMutex> _sharedSurfMutex;
+
+			ID3D11RenderTargetView *renderTarget;
 			
 			DXGI_OUTDUPL_FRAME_INFO _deskInfo;
 			IDXGIResource* _deskResource;

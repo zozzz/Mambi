@@ -6,9 +6,7 @@
 
 namespace Mambi {
 
-	bool Application::_userEnabled = true;
-
-	Application::Application()
+	Application::Application(): _userEnabled(true)
 	{
 	}
 
@@ -27,7 +25,6 @@ namespace Mambi {
 
 	bool Application::Init(HINSTANCE hInstance)
 	{
-		Console::WriteLine("Application::Init");
 		_hInstance = hInstance;
 		RegisterWindowClass();
 		CalibrateWindow::RegisterWindowClass();
@@ -72,6 +69,7 @@ namespace Mambi {
 	{
 		if (_userEnabled != enabled) 
 		{
+			Config().WriteUser("enabled", enabled);
 			_userEnabled = enabled;
 			_trayIcon->Update();
 		}
@@ -100,9 +98,7 @@ namespace Mambi {
 			return 1;
 
 		case WM_DISPLAYCHANGE:
-			Console::WriteLine("WM_DISPLAYCHANGE");
-			Display().UpdateOutputs();
-			Calibrate().Update();
+			OnDisplayChange();
 			break;
 
 		case WM_PAINT:
@@ -123,12 +119,24 @@ namespace Mambi {
 		if (lock)
 		{
 			Console::WriteLine("Application::OnConfigUpdate", Config().Path().c_str());
+			auto& cfg = Config().Data();
+			if (cfg.count("enabled"))
+			{
+				_userEnabled = cfg["enabled"];
+			}
+
+
 			Led().Update();
 			Profile().Update();
 			Display().Update();
 			Calibrate().Update();
 			lock.Release();			
 		}		
+	}
+
+	void Application::OnDisplayChange()
+	{
+		OnConfigUpdate();
 	}
 
 

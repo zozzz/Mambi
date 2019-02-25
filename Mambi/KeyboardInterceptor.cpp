@@ -33,33 +33,7 @@ namespace Mambi
 			switch (key->vkCode)
 			{
 			case VK_PAUSE:
-				Console::WriteLine("PAUSE PRESSED");
-				//Application::UserEnabled(!Application::UserEnabled());
-				
-				
-				int i = 0;
-				for (auto& item: Application::Display().DisplayMap())
-				{
-					auto frame = item.second.Frame();
-					if (frame)
-					{
-						if (frame->Acquire())
-						{
-							frame->UpdateSamples(item.second.Samples());
-							frame->Release();
-						}
-					}
-					else
-					{
-						throw new std::exception("FUCK");
-					}
-					
-					//frame->GetSamplesData(item.second.Samples())
-					//char path[MAX_PATH];
-					//sprintf_s(path, "D:\\Workspace\\Mambi\\screenshot\\display_%d.png", i);
-					//frame->SaveToPNG(path);
-				}				
-
+				Application::UserEnabled(!Application::UserEnabled());
 				return 1; // prevent the system from passing the message to the rest of the hook chain				
 			}			
 		}		

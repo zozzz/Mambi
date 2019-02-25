@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "Display.h"
+#include "DisplaySample.h"
 
 
 namespace Mambi
@@ -72,6 +73,7 @@ namespace Mambi
 
 		HWND _hWnd;
 		const Display& _display;
+		DisplaySamples* _samples;
 		//std::vector<Trackbar*> _trackbars;
 	};
 }

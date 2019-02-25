@@ -1,5 +1,6 @@
 #pragma once
 #include "Color.h"
+#include "Messages.h"
 
 
 namespace Mambi
@@ -26,27 +27,20 @@ namespace Mambi
 	public:
 		friend DisplaySamples;
 
-		DisplaySample(DisplayDim w, DisplayDim h, D3D11_BOX src) : _w(w), _h(h), _src(src) {};
+		DisplaySample(DisplayDim w, DisplayDim h, D3D11_BOX src) : width(w), height(h), src(src) {};
 		~DisplaySample() {};
 
-		inline auto& Src() const { return _src; }
-		inline auto& Dst() const { return _dst; }
-		inline auto& Width() const { return _w; }
-		inline auto& Height() const { return _h; }
+		//inline auto& Src() const { return _src; }
+		//inline auto& Dst() const { return _dst; }
+		//inline auto& Width() const { return _w; }
+		//inline auto& Height() const { return _h; }
 		// inline rgb_t* Avg() { return &_avg; }
-
-		template<typename T>
-		void Process(T* data, UINT pitch)
-		{
-		}
-		
+				
+		DisplayDim width;
+		DisplayDim height;
+		D3D11_BOX src;
 		rgb_t avg;
-
-	private:
-		DisplayDim _w;
-		DisplayDim _h;
-		D3D11_BOX _src;
-		RECT _dst;		
+		RECT dst;
 	};
 
 
@@ -169,6 +163,8 @@ namespace Mambi
 		inline auto& Items() { return _samples; }
 		inline auto Width() const { return _width; }
 		inline auto Height() const { return _height; }
+		inline auto HFactory() const { return _hFactory; }
+		inline auto VFactory() const { return _vFactory; }
 
 		void Update(DisplayDim dWidth, DisplayDim dHeight, DisplayDim nWidth, DisplayDim nHeight, UINT16 hcount, UINT16 vcount)
 		{
@@ -189,12 +185,22 @@ namespace Mambi
 				return;
 			}
 
+			if (abs(offset) >= _samples.size())
+			{
+				ErrorAlert("Mambi", "LedStrip offset is out of range.");
+			}
+
+			DSL tmp;
+
 			if (offset < 0)
 			{
-
+				ErrorAlert("Mambi", "Negative offset is not supported currently, plase write to developer :).");
 			}
 			else
 			{
+				tmp.insert(tmp.begin(), _samples.end() - offset, _samples.end());
+				_samples.erase(_samples.end() - offset, _samples.end());
+				_samples.insert(_samples.begin(), tmp.begin(), tmp.begin() + offset);
 			}
 		}
 
@@ -206,12 +212,12 @@ namespace Mambi
 
 			for (auto& s: _samples)
 			{
-				s._dst.top = 0;
-				s._dst.left = x;
-				s._dst.right = x + s._w;
-				s._dst.bottom = s._h;
-				mh = max(mh, s._h);
-				x += s._w;
+				s.dst.top = 0;
+				s.dst.left = x;
+				s.dst.right = x + s.width;
+				s.dst.bottom = s.height;
+				mh = max(mh, s.height);
+				x += s.width;
 			}
 
 			_width = x;

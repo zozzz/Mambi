@@ -16,6 +16,8 @@ namespace Mambi {
 
 		D3D_FEATURE_LEVEL featureLevels[] =
 		{
+			D3D_FEATURE_LEVEL_12_1,
+			D3D_FEATURE_LEVEL_12_0,
 			D3D_FEATURE_LEVEL_11_0,
 			D3D_FEATURE_LEVEL_10_1,
 			D3D_FEATURE_LEVEL_10_0,
@@ -23,6 +25,11 @@ namespace Mambi {
 		};
 		UINT numFeatureLevels = ARRAYSIZE(featureLevels);
 		
+		/*
+		HRESULT hr = D3D11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, 0, featureLevels, numFeatureLevels,
+			D3D11_SDK_VERSION, &device->Instance, &device->FeatureLevel, &device->Context);
+		*/
+
 		HRESULT hr = D3D11CreateDevice(adapter, D3D_DRIVER_TYPE_UNKNOWN, NULL, 0, featureLevels, numFeatureLevels,
 			D3D11_SDK_VERSION, &device->Instance, &device->FeatureLevel, &device->Context);
 		
@@ -31,6 +38,7 @@ namespace Mambi {
 			throw new std::exception("Failed to create device");
 		}
 		
+
 
 		/*
 		// VERTEX shader
@@ -122,39 +130,37 @@ namespace Mambi {
 		std::shared_ptr<DuplicatedOutput::Frame> frame(new DuplicatedOutput::Frame(_duplicatedOutput));
 		HRESULT hr;
 
-		RtlZeroMemory(&frame->_stagingTextdesc, sizeof(D3D11_TEXTURE2D_DESC));
-		frame->_stagingTextdesc.Width = Width();
-		frame->_stagingTextdesc.Height = Height();
-		frame->_stagingTextdesc.MipLevels = 1;
-		frame->_stagingTextdesc.ArraySize = 1;
-		frame->_stagingTextdesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-		frame->_stagingTextdesc.SampleDesc.Count = 1;
-		frame->_stagingTextdesc.Usage = D3D11_USAGE_STAGING;
-		//frame->_stagingTextdesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-		frame->_stagingTextdesc.BindFlags = 0;
-		frame->_stagingTextdesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		frame->_stagingTextdesc.MiscFlags = 0;
-		//frame->_stagingTextdesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
+		RtlZeroMemory(&frame->_sharedTextDesc, sizeof(D3D11_TEXTURE2D_DESC));
+		frame->_sharedTextDesc.Width = Width();
+		frame->_sharedTextDesc.Height = Height();
+		frame->_sharedTextDesc.MipLevels = 1;
+		frame->_sharedTextDesc.ArraySize = 1;
+		frame->_sharedTextDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		frame->_sharedTextDesc.SampleDesc.Count = 1;
+		frame->_sharedTextDesc.Usage = D3D11_USAGE_DEFAULT;
+		frame->_sharedTextDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		//frame->_sharedTextDesc.BindFlags = 0;
+		frame->_sharedTextDesc.CPUAccessFlags = 0;
+		//frame->_sharedTextDesc.MiscFlags = 0;
+		frame->_sharedTextDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 		
 
 		// frame->_sharedText
-		hr = _device->Instance->CreateTexture2D(&frame->_stagingTextdesc, nullptr, &frame->_stagingText);
+		hr = _device->Instance->CreateTexture2D(&frame->_sharedTextDesc, nullptr, &frame->_sharedText);
 		if (FAILED(hr))
 		{
 			return NULL;
 		}
-		*/
+
 
 		// frame->_sharedTextMutex
-		/*
 		hr = frame->_sharedText->QueryInterface(__uuidof(IDXGIKeyedMutex), reinterpret_cast<void**>(&frame->_sharedTextMutex));
 		if (FAILED(hr))
 		{
 			return NULL;
 		}
-		*/
 		
-		/*
+		
 		// sharedHandle
 		HANDLE sharedHandle;
 		CComPtr<IDXGIResource> DXGIResource;
@@ -179,10 +185,13 @@ namespace Mambi {
 			return NULL;
 		}
 
-		frame->_sharedSurf->GetDesc(&frame->_sharedSurfDesc);
-		*/
+		_device->Context->OMSetRenderTargets(1, &frame->renderTarget, NULL);
 
-		//return frame;
+		frame->_sharedSurf->GetDesc(&frame->_sharedSurfDesc);
+		
+
+		return frame;
+		*/
 	}
 
 	/*
@@ -223,14 +232,20 @@ namespace Mambi {
 		{
 			return false;
 		}
+
+		/*if (_deskInfo.AccumulatedFrames == 0)
+		{
+			return false;
+		}*/
 		
 		hr = _deskResource->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void **>(&_deskText));
 		if (FAILED(hr))
 		{
 			_duplicatedOutput->ReleaseFrame();
 			return false;
-		}
+		}		
 
+		/*
 		if (_deskInfo.TotalMetadataBufferSize)
 		{
 			if (!_meta.EnsureSize(_deskInfo.TotalMetadataBufferSize))
@@ -253,11 +268,11 @@ namespace Mambi {
 				return false;
 			}
 			_dirtyCount = consumedSize / sizeof(RECT);
-		}
-
-		std::auto_ptr<Texture> _texture(new Texture(_deskText));
+		}		
+		*/
 
 #ifndef NDEBUG
+		//std::auto_ptr<Texture> _texture(new Texture(_deskText));
 		//assert(SaveToPng("D:\\Workspace\\Mambi\\screenshot\\frame.png", _texture.get()));
 #endif // !NDEBUG
 
@@ -283,15 +298,13 @@ namespace Mambi {
 				_stagingText = NULL;
 			}			
 
-			RtlZeroMemory(&_stagingTextDesc, sizeof(D3D11_TEXTURE2D_DESC));
+			memcpy_s(&_stagingTextDesc, sizeof(D3D11_TEXTURE2D_DESC), &_deskDesc, sizeof(D3D11_TEXTURE2D_DESC));
 			//_stagingTextDesc.Width = samples.Width();
 			_stagingTextDesc.Width = _deskDesc.Width;
+			//_stagingTextDesc.Width = _sharedSurfDesc.Width;
 			//_stagingTextDesc.Height = samples.Height();
 			_stagingTextDesc.Height = _deskDesc.Height;
-			_stagingTextDesc.MipLevels = 1;
-			_stagingTextDesc.ArraySize = 1;
-			_stagingTextDesc.Format = _deskDesc.Format;
-			_stagingTextDesc.SampleDesc.Count = 1;
+			//_stagingTextDesc.Height = _sharedSurfDesc.Height;
 			_stagingTextDesc.Usage = D3D11_USAGE_STAGING;
 			_stagingTextDesc.BindFlags = 0;
 			_stagingTextDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
@@ -302,10 +315,41 @@ namespace Mambi {
 			{
 				return false;
 			}
+
+
+			/*memcpy_s(&_samplesDesc, sizeof(D3D11_TEXTURE2D_DESC), &_deskDesc, sizeof(D3D11_TEXTURE2D_DESC));
+			_samplesDesc.Width = samples.Width();
+			_samplesDesc.Height = samples.Height();
+			_samplesDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+			_samplesDesc.MiscFlags = 0;
+
+			hr = device->CreateTexture2D(&_samplesDesc, nullptr, &_samplesText);
+			if (FAILED(hr))
+			{
+				return false;
+			}
+			*/
 		}
 
+		assert(_stagingText != NULL);
+
 		//CopySamplesRect(context, samples);
+		//context->CopyResource(_stagingText, _sharedText);
+
+		/*D3D11_BOX src;
+		src.top = 0;
+		src.left = 0;
+		src.right = width * 4;
+		src.bottom = height * 4;
+		src.front = 0;
+		src.back = 0;
+		context->CopySubresourceRegion(_stagingText, 0, 0, 0, 0, _deskText, 0, &src);
+
+		context->Flush();
+		Sleep(1000);
+		*/
 		context->CopyResource(_stagingText, _deskText);
+		
 
 		D3D11_MAPPED_SUBRESOURCE map;
 		hr = context->Map(_stagingText, 0, D3D11_MAP_READ, 0, &map);
@@ -330,9 +374,10 @@ namespace Mambi {
 
 	void DuplicatedOutput::Frame::CopySamplesRect(ID3D11DeviceContext* context, DisplaySamples& samples)
 	{
+		//assert(_samplesText != NULL);
 		for (auto sample : samples.Items())
 		{
-			context->CopySubresourceRegion(_samplesText, 0, sample.Dst().left, sample.Dst().top, 0, _deskText, 0, &sample.Src());
+			context->CopySubresourceRegion(_sharedSurf, 0, sample.dst.left, sample.dst.top, 0, _deskText, 0, &sample.src);
 		}
 	}
 
@@ -360,6 +405,7 @@ namespace Mambi {
 	}
 
 
+	// https://www.compuphase.com/graphic/scale3.htm
 	bool DuplicatedOutput::Frame::_UpdateSamples(DisplaySamples& samples, D3D11_MAPPED_SUBRESOURCE& map)
 	{
 		bgra_t* data = (bgra_t*)map.pData;
@@ -376,9 +422,9 @@ namespace Mambi {
 			r = 0;
 			g = 0;
 			b = 0;
-			count = sample.Width() * sample.Height();
+			count = sample.width * sample.height;
 
-			auto& src = sample.Src();
+			auto& src = sample.src;
 			for (UINT y=src.top ; y < src.bottom ; ++y)
 			{
 				rowOffset = rowPitch * y;
@@ -397,7 +443,7 @@ namespace Mambi {
 
 			//Console::WriteLine("AVG(%d, %d, %d)", sample.avg.r, sample.avg.g, sample.avg.b);
 		}
-
+		
 		return true;
 	}
 
@@ -481,6 +527,7 @@ namespace Mambi {
 #ifndef NDEBUG
 	bool SaveToPng(const char* filename, Texture* texture)
 	{
+		Console::WriteLine("SaveToPng %s", filename);
 		auto mapped = texture->Map();
 		auto data = mapped->Data<bgra_t>();
 		
@@ -503,7 +550,8 @@ namespace Mambi {
 	}
 
 	bool SaveToPng(const char* filename, D3D11_MAPPED_SUBRESOURCE& map, D3D11_TEXTURE2D_DESC& desc)
-	{		
+	{	
+		Console::WriteLine("SaveToPng %s", filename);
 		std::unique_ptr<rgba_t> buff(new rgba_t[desc.Width * desc.Height]);
 		TextureData<bgra_t> data((bgra_t*)map.pData, map.RowPitch);
 

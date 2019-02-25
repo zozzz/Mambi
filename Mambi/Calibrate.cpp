@@ -27,7 +27,7 @@ namespace Mambi
 	{
 		auto& cfg = Application::Config().Data();
 		bool enabled = cfg.count("calibrate") == 1 && cfg["calibrate"].is_boolean() && cfg["calibrate"];
-		Enabled(enabled);	
+		Enabled(enabled && Application::Enabled());	
 		return true;
 	}
 
@@ -87,14 +87,11 @@ namespace Mambi
 
 
 
-	CalibrateWindow::CalibrateWindow(const Display& display): _display(display)
+	CalibrateWindow::CalibrateWindow(const Display& display): _display(display), _samples(NULL)
 	{
-		Console::WriteLine("CalibrateWindow::CalibrateWindow");
-
 		int winWidth = display.DesktopWidth();
-		//int winWidth = 1000;
 		int winHeight = display.DesktopHeight();
-		//int winHeight = 1000;
+		
 
 		_hWnd = CreateWindowEx(
 			0,
@@ -138,8 +135,12 @@ namespace Mambi
 
 	CalibrateWindow::~CalibrateWindow()
 	{
-		Console::WriteLine("CalibrateWindow::~CalibrateWindow");
 		Hide();
+		if (_samples != NULL) 
+		{
+			delete _samples;
+			_samples = NULL;
+		}
 	}
 
 	void CalibrateWindow::Hide()
@@ -162,39 +163,123 @@ namespace Mambi
 	
 	void CalibrateWindow::Update()
 	{
-		Console::WriteLine("CalibrateWindow::Update");
+		if (_samples != NULL)
+		{
+			delete _samples;
+			_samples = NULL;
+		}
+
+		auto hFactory = const_cast<Display*>(&_display)->Samples().HFactory();
+		auto vFactory = const_cast<Display*>(&_display)->Samples().VFactory();
+		_samples = new DisplaySamples(hFactory, vFactory);
+		_samples->Update(
+			_display.DesktopWidth(), _display.DesktopHeight(),
+			_display.NativeWidth(), _display.NativeHeight(),
+			_display.LedStrip()->HCount(),
+			_display.LedStrip()->VCount());
 		RedrawWindow(_hWnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
 	}
 
 
+	template<int MS>
+	struct CWSide {
+		CWSide(int begin, int end) 
+		{
+			this->begin = begin;
+			this->end = end;
+
+			this->middleBegin = begin + (end - begin) / MS - (MS / 2);
+			this->middleEnd = this->middleBegin + (MS / 2);
+		}
+
+		int begin;
+		int end;
+		int middleBegin;
+		int middleEnd;
+	};
+
+
 	void CalibrateWindow::Paint()
 	{
+		if (_samples == NULL)
+		{
+			return;
+		}
+
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(_hWnd, &ps);
 
-		HBRUSH brushes[] = {
-			CreateSolidBrush(RGB(255, 0, 0)),
-			CreateSolidBrush(RGB(0, 255, 0)),
-			CreateSolidBrush(RGB(0, 0, 255)),
-			CreateSolidBrush(RGB(212, 0, 255)),
-			CreateSolidBrush(RGB(212, 0, 255)),
-			CreateSolidBrush(RGB(212, 0, 255)),
-			CreateSolidBrush(RGB(212, 0, 255))			
-		};
-		int bc = ARRAYSIZE(brushes);
+		// TOP: RED ... PURPLE ... RED
+		// RIGHT: BLUE ... PURPLE ... BLUE
+		// BOTTOM: YELLOW ... PURPLE ... YELLOW
+		// LEFT: GREEN ... PURPLE ... GREEN
 
-		for (auto& item : Application::Display().DisplayMap())
+
+		auto red = CreateSolidBrush(RGB(255, 0, 0));
+		auto green = CreateSolidBrush(RGB(0, 255, 0));
+		auto blue = CreateSolidBrush(RGB(0, 0, 255));
+		auto yellow = CreateSolidBrush(RGB(255, 255, 0));
+		auto purple = CreateSolidBrush(RGB(255, 0, 255));
+		auto black = CreateSolidBrush(RGB(0, 0, 0));
+
+
+		int hCount = _display.LedStrip()->HCount();
+		int vCount = _display.LedStrip()->VCount();
+
+		int i = 0;
+		CWSide<2> top(0, hCount - 1),
+			right(hCount, hCount + vCount - 1),
+			bottom(hCount + vCount, hCount * 2 + vCount - 1),
+			left(hCount * 2 + vCount, hCount * 2 + vCount * 2 - 1);
+
+		for (auto& s : _samples->Items())
+		//for (auto& s : const_cast<Display&>(_display).Samples().Items())
 		{
-			int i = 0;
-			for (auto& s : item.second.Samples().Items())
-			{
-				RECT rect = { s.Src().left, s.Src().top, s.Src().right, s.Src().bottom };
-				//Console::WriteLine("DRAW(%ld, %ld, %ld, %ld)", rect.left, rect.top, rect.right, rect.bottom);
+			RECT rect = { s.src.left, s.src.top, s.src.right, s.src.bottom };
+			//Console::WriteLine("DRAW(%ld, %ld, %ld, %ld)", rect.left, rect.top, rect.right, rect.bottom);
 		
-				FillRect(hdc, &rect, brushes[i % bc]);
-				i++;
+			if (top.begin == i || top.end == i)
+			{
+				FillRect(hdc, &rect, red);
 			}
+			else if (right.begin == i || right.end == i) 
+			{
+				FillRect(hdc, &rect, blue);
+			}
+			else if (bottom.begin == i || bottom.end == i)
+			{
+				FillRect(hdc, &rect, yellow);
+			}
+			else if (left.begin == i || left.end == i)
+			{
+				FillRect(hdc, &rect, green);
+			}
+			else if (top.middleBegin <= i && top.middleEnd >= i)
+			{
+				FillRect(hdc, &rect, purple);
+			}
+			else if (right.middleBegin <= i && right.middleEnd >= i)
+			{
+				FillRect(hdc, &rect, purple);
+			}
+			else if (bottom.middleBegin <= i && bottom.middleEnd >= i)
+			{
+				FillRect(hdc, &rect, purple);
+			}
+			else if (left.middleBegin <= i && left.middleEnd >= i)
+			{
+				FillRect(hdc, &rect, purple);
+			}
+			else 
+			{
+				FillRect(hdc, &rect, black);
+			}
+			
+
+			//FillRect(hdc, &rect, brushes[i % bc]);
+			i++;
 		}
+		
 
 		EndPaint(_hWnd, &ps);
 	}
@@ -207,7 +292,7 @@ namespace Mambi
 		case WM_KEYDOWN:
 			if (wParam == VK_ESCAPE)
 			{
-				Hide();
+				Application::Config().WriteUser("calibrate", false);
 				return 1;
 			}			
 			break;

@@ -70,9 +70,9 @@ R"###({
 	},
 	"ledStrip": {
 		"main": {
-			"port": "",
+			"port": "\\\\.\\COM10",
 			"leds": {
-				"horizontal": 20,
+				"horizontal": 24,
 				"vertical": 10
 			}
 		}

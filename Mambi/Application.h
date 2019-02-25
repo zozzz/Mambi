@@ -18,7 +18,7 @@ namespace Mambi {
 		static inline HINSTANCE InstanceHandle() { return Instance()._hInstance; }
 		static inline void Exit(int code=0) { PostQuitMessage(code); }
 		static inline void UserEnabled(bool enabled) { Instance().SetUserEnabled(enabled); }
-		static inline bool UserEnabled() { return _userEnabled; }
+		static inline bool UserEnabled() { return Instance()._userEnabled; }
 		static inline bool Enabled() { return UserEnabled(); }
 		static inline Mambi::KeyboardInterceptor& Keyboard() { return *Instance()._kbInterceptor; }
 		static inline Mambi::TrayIcon& TrayIcon() { return *Instance()._trayIcon; }
@@ -29,7 +29,7 @@ namespace Mambi {
 		static inline Mambi::Calibrate& Calibrate() { return *Instance()._calibrate; }
 		
 	private:
-		static bool _userEnabled;
+		bool _userEnabled;
 
 	public:
 		static Application& Instance() {
@@ -54,6 +54,7 @@ namespace Mambi {
 		ATOM RegisterWindowClass();
 		void CreateMainWindow();
 		void OnConfigUpdate();
+		void OnDisplayChange();
 
 		HINSTANCE _hInstance;
 		HWND _hWnd;

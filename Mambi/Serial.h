@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "Messages.h"
+#include "Console.h"
 
 
 namespace Mambi
@@ -21,8 +22,11 @@ namespace Mambi
 				0,
 				NULL);
 
-			if (_handle == NULL)
+			Console::WriteLine("PORT %s", _name.c_str());
+
+			if (_handle == INVALID_HANDLE_VALUE)
 			{
+				DWORD errCode = GetLastError();
 				throw new std::exception("Failed to connect to port");
 			}
 
@@ -43,6 +47,7 @@ namespace Mambi
 			}
 			else
 			{
+				DWORD errCode = GetLastError();
 				//throw new std::exception("Failed to connect to port");
 				ErrorAlert("Error", "Cannot connect to ledstrip, maybe port value is invalid, or the device is not connected");
 				PostQuitMessage(1);
