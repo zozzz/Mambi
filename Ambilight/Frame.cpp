@@ -21,8 +21,6 @@ namespace Mambi
 
 	Frame::~Frame()
 	{
-		printf("Frame::~Frame\n");
-
 		if (_txAck)
 		{
 			_txAck->Release();
@@ -109,66 +107,6 @@ namespace Mambi
 		HRESULT hr = _output->Context->Map(_txSamples, 0, D3D11_MAP_READ, 0, &_mapSamples);
 		return SUCCEEDED(hr);
 	}
-
-
-#if 0
-	// https://www.compuphase.com/graphic/scale3.htm
-	bool Frame::UpdateSamplesAvg()
-	{
-		bgra_t* data = reinterpret_cast<bgra_t*>(_mapSamples.pData);
-		size_t pitch = _mapSamples.RowPitch / sizeof(UINT32);
-		size_t count;
-		DisplayDim w;
-		DisplayDim h;
-		size_t r, g, b;
-		UINT32 avg;
-
-		for (auto& sample: _samples->Items())
-		{
-			r = 0;
-			g = 0;
-			b = 0;
-			count = 0;
-			avg = 0;
-
-			for (DisplayDim y = sample.Dst.top; y < sample.Dst.bottom; ++y)
-			{
-				size_t offset = y * pitch;
-				for (DisplayDim x = sample.Dst.left; x < sample.Dst.right; ++x)
-				{
-					bgra_t& inp = data[offset + x];
-					
-					/*
-					double scaling = 1.0 / (double)(count + 1);
-					r = inp.r * scaling + r * (1.0 - scaling);
-					g = inp.g * scaling + g * (1.0 - scaling);
-					b = inp.b * scaling + b * (1.0 - scaling);
-					++count;
-					*/
-
-					/*
-					r = (r + inp.r) / count;
-					g = (g + inp.g) / count;
-					b = (b + inp.b) / count;
-					*/
-
-					//avg = ((avg ^ inp) >> 1) + (avg & inp);
-
-					r += inp.r;
-					g += inp.g;
-					b += inp.b;
-					++count;
-				}
-			}
-
-			sample.Avg.r = r / count;
-			sample.Avg.g = g / count;
-			sample.Avg.b = b / count;
-		}
-
-		return true;
-	}
-#endif
 
 
 	bool Frame::CreateSamplesTexture()

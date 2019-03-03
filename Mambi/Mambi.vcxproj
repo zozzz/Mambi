@@ -166,7 +166,6 @@
     <ClInclude Include="Config.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="Display.h" />
-    <ClInclude Include="DuplicatedOutput.h" />
     <ClInclude Include="DisplayManager.h" />
     <ClInclude Include="Effect.h" />
     <ClInclude Include="KeyboardInterceptor.h" />
@@ -183,7 +182,6 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="Synchronisation.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="Timeline.h" />
     <ClInclude Include="TrayIcon.h" />
     <ClInclude Include="TrayMenu.h" />
     <ClInclude Include="utils.h" />
@@ -193,7 +191,6 @@
     <ClCompile Include="Calibrate.cpp" />
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="Display.cpp" />
-    <ClCompile Include="DuplicatedOutput.cpp" />
     <ClCompile Include="DisplayManager.cpp" />
     <ClCompile Include="Effect.cpp" />
     <ClCompile Include="KeyboardInterceptor.cpp" />

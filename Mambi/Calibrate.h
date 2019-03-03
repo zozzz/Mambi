@@ -26,35 +26,14 @@ namespace Mambi
 		void ShowWindows();
 		void HideWindows();
 
-		// static DWORD WINAPI DrawThread(LPVOID lpParam);
-
-		// void StopDraw();
-		// void DisplayWindows();
-		// void DrawWindows();
-
 		bool _enabled;	
-		std::map<std::string, CalibrateWindow*> _windows;
-		// HANDLE _mutex;
-		// HANDLE _drawThread;
+		std::map<std::string, CalibrateWindow*> _windows;		
 	};
 
 
 
 	class CalibrateWindow {
 	public:
-		/*
-		class Trackbar {
-		public:
-			Trackbar(HWND parent, int x, int y, int w, int h, const char* path, int minV, int maxV);
-			~Trackbar();
-
-		private:
-			HWND _hWnd;
-			const char* _path;
-		};
-		*/
-
-
 		static ATOM RegisterWindowClass();
 
 		CalibrateWindow(const Display& display);
@@ -73,7 +52,6 @@ namespace Mambi
 
 		HWND _hWnd;
 		const Display& _display;
-		DisplaySamples* _samples;
-		//std::vector<Trackbar*> _trackbars;
+		DisplaySamples* _samples;		
 	};
 }

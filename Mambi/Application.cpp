@@ -93,7 +93,6 @@ namespace Mambi {
 			return 1;
 
 		case WM_MAMBI_PROFILE_CHANGED:
-			Console::WriteLine("WM_MAMBI_PROFILE_CHANGED");
 			TrayIcon().Menu().UpdateProfile();
 			return 1;
 
@@ -103,10 +102,6 @@ namespace Mambi {
 
 		case WM_DEVICECHANGE:
 			Console::WriteLine("WM_DEVICECHANGE");
-			break;
-
-		case WM_PAINT:
-			Console::WriteLine("WM_PAINT %d, %d", wParam, lParam);
 			break;
 
 		default:
@@ -122,7 +117,7 @@ namespace Mambi {
 
 		if (lock)
 		{
-			Console::WriteLine("Application::OnConfigUpdate", Config().Path().c_str());
+			//Console::WriteLine("Application::OnConfigUpdate", Config().Path().c_str());
 			auto& cfg = Config().Data();
 			if (cfg.count("enabled"))
 			{
@@ -140,7 +135,6 @@ namespace Mambi {
 
 	void Application::OnDisplayChange()
 	{
-		Console::WriteLine("WM_DISPLAYCHANGE");
 		OnConfigUpdate();
 	}
 

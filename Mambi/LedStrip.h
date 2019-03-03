@@ -44,9 +44,9 @@ namespace Mambi
 		void operator=(LedStrip const&) = delete;
 
 	private:
-		DWORD CreateMessage(Command cmd, BYTE* payload, uint8_t payloadSize);
-		DWORD CreateMessage(Command cmd, BYTE* params, uint8_t paramsSize, BYTE* payload, uint8_t payloadSize);
-		bool Write(DWORD size) const;
+		size_t CreateMessage(Command cmd, BYTE* payload, size_t payloadSize);
+		size_t CreateMessage(Command cmd, BYTE* params, size_t paramsSize, BYTE* payload, size_t payloadSize);
+		bool Write(size_t size) const;
 
 		ComPort* _port;
 		IndexType _countH;

@@ -119,7 +119,10 @@ namespace Mambi
 		uint8_t fps = cfg["fps"].get<uint8_t>();
 		interval = (UINT16)round(1000 / fps);
 		_frameCount = (UINT16)round(duration / interval);
+#pragma warning( push )
+#pragma warning( disable : 4244)
 		_stepBrightness = (float)(maxBrightness - minBrightness) / ((float)_frameCount / 2.0);
+#pragma warning( pop ) 
 
 		if (!Color::RedFromHex(color, cfg["color"]))
 		{

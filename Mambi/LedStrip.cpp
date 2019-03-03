@@ -54,13 +54,13 @@ namespace Mambi
 
 	void LedStrip::Light(const rgb_t* info, DWORD size) const
 	{
-		DWORD msgSize = const_cast<LedStrip*>(this)->CreateMessage(Command::CMDUpdate, (BYTE*)info, sizeof(rgb_t) * size);
+		size_t msgSize = const_cast<LedStrip*>(this)->CreateMessage(Command::CMDUpdate, (BYTE*)info, sizeof(rgb_t) * size);
 		Write(msgSize);
 	}
 
 	void LedStrip::Transition(uint16_t duration, const rgb_t* info, DWORD size) const
 	{
-		DWORD msgSize = const_cast<LedStrip*>(this)->CreateMessage(
+		size_t msgSize = const_cast<LedStrip*>(this)->CreateMessage(
 			Command::CMDTransition, 
 			(BYTE*)&duration, sizeof(uint16_t),
 			(BYTE*)info, sizeof(rgb_t) * size);
@@ -70,27 +70,29 @@ namespace Mambi
 
 	void LedStrip::Off() const
 	{
-		DWORD msgSize = const_cast<LedStrip*>(this)->CreateMessage(Command::CMDOff, NULL, 0);
+		size_t msgSize = const_cast<LedStrip*>(this)->CreateMessage(Command::CMDOff, NULL, 0);
 		Write(msgSize);
 	}
 
 
 	void LedStrip::SetBrightness(uint8_t brightness) const
 	{
-		DWORD msgSize = const_cast<LedStrip*>(this)->CreateMessage(Command::CMDBrightness, &brightness, 1);
+		size_t msgSize = const_cast<LedStrip*>(this)->CreateMessage(Command::CMDBrightness, &brightness, 1);
 		Write(msgSize);
 	}
 
 
-	DWORD LedStrip::CreateMessage(Command cmd, BYTE* payload, uint8_t payloadSize)
+	size_t LedStrip::CreateMessage(Command cmd, BYTE* payload, size_t payloadSize)
 	{
 		return CreateMessage(cmd, NULL, 0, payload, payloadSize);
 	}
 
 
-	DWORD LedStrip::CreateMessage(Command cmd, BYTE* params, uint8_t paramsSize, BYTE* payload, uint8_t payloadSize)
+	size_t LedStrip::CreateMessage(Command cmd, BYTE* params, size_t paramsSize, BYTE* payload, size_t payloadSize)
 	{
-		DWORD size = ARRAYSIZE(Header) + 2 + payloadSize + paramsSize;
+		assert(payloadSize + paramsSize <= 255);
+
+		size_t size = ARRAYSIZE(Header) + 2 + payloadSize + paramsSize;		
 		if (!_message.EnsureSize(size))
 		{
 			return 0;
@@ -101,7 +103,10 @@ namespace Mambi
 			return 0;
 		}
 		
+#pragma warning( push )
+#pragma warning( disable : 4267)
 		_message[ARRAYSIZE(Header)] = payloadSize + paramsSize;
+#pragma warning( pop ) 
 		_message[ARRAYSIZE(Header) + 1] = cmd;
 
 		if (paramsSize > 0)
@@ -123,11 +128,14 @@ namespace Mambi
 		return size;
 	}
 
-	bool LedStrip::Write(DWORD size) const
+	bool LedStrip::Write(size_t size) const
 	{
 		if (size != 0)
 		{
+#pragma warning( push )
+#pragma warning( disable : 4267)
 			return _port->Write(_message, size) == size;
+#pragma warning( pop ) 
 		}
 		return false;
 	}

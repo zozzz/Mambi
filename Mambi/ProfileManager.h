@@ -26,14 +26,6 @@ namespace Mambi
 
 		void ReplaceProfile(std::shared_ptr<Profile> current, std::shared_ptr<Profile> replcae);
 
-		//static DWORD WINAPI AutoDetectThread(LPVOID lpParam);
-
-		//void DoUpdate();
-		//void AutoDetect();
-		//bool SetActive(Profile* profile);
-		//void StartAutoDetect();
-		//void StopAutoDetect();
-
 		std::map<std::string, std::shared_ptr<Profile>> _profiles;
 	};
 
