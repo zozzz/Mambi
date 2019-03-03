@@ -16,8 +16,8 @@ namespace Mambi
 R"###({
 	"calibrate": false,
 	"profile": {
-		"Game": {
-			"fgApplication": "game",
+		"Ambilight": {
+			"fgApplication": "fullscreen",
 			"effect": {
 				"type": "ambilight"				
 			},
@@ -43,6 +43,35 @@ R"###({
 				"brightness": 100
 			},
 			"priority": 0
+        },
+		"Rainbow": {
+			"fgApplication": "any",
+			"effect": {
+				"type": "rainbow",
+				"duration": 10000,
+				"brightness": 200,
+				"colors": [
+					[0.0, "FF0000"],
+					[0.3, "0000FF"],
+					[0.3, "00FF00"],
+					[1.0, "FF0000"]
+				]
+			},
+			"priority": 100
+		},
+		"Timber": {
+            "effect": {
+                "brightness": 255,
+                "colors": [
+                    [0.0, "fc00ff"],
+                    [0.5, "00dbde"],
+					[1.0, "fc00ff"]
+                ],
+                "duration": 5000,
+                "type": "rainbow"
+            },
+            "fgApplication": "any",
+            "priority": 100
         }
 	},
 	"display": {
@@ -56,15 +85,17 @@ R"###({
 			},
 			"samples": {
 				"horizontal": {
-					"width": 100,
-					"height": 100,
-                    "margin": 20
-				},
-				"vertical": {
-					"width": 100,
-					"height": 100,
-                    "margin": 20
-				}
+                    "height": 150,
+                    "hpadding": 50,
+                    "vpadding": 0,
+                    "width": 100
+                },
+                "vertical": {
+                    "height": 100,
+                    "hpadding": 0,
+                    "vpadding": 50,
+                    "width": 150
+                }
 			}
 		}
 	},
@@ -112,7 +143,14 @@ R"###({
 		if (_hFileWatcher != NULL) 
 		{
 			CloseHandle(_hFileWatcher);
+			_hFileWatcher = NULL;
 		}		
+
+		if (_mutex != NULL)
+		{
+			CloseHandle(_mutex);
+			_mutex = NULL;
+		}
 	}
 
 

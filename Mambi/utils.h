@@ -1,6 +1,9 @@
 #pragma once
 #include "Console.h"
 
+#define __MAMBI_STRINGIFY(x) #x
+#define MAMBI_STRINGIFY(x) __MAMBI_STRINGIFY(x)
+
 
 namespace Mambi 
 {
@@ -77,6 +80,7 @@ namespace Mambi
 
 		inline T* Data() const { return _data; }
 		inline auto Size() const { return _size; }
+		inline void Zero() { ZeroMemory(_data, sizeof(T) * _size); }
 
 		bool EnsureSize(size_t required) 
 		{

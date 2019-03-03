@@ -36,6 +36,14 @@
 	}
 
 
+#define MAMBI_CFG_IS_ARRAY(__cfg, __name, __path) \
+	MAMBI_CFG_EXISTS(__cfg, __name, __path) \
+	else if (!(__cfg)[__name].is_array()) { \
+		ErrorAlert("Error", "The '" ## __name ## "' value must be array  in '" ## __path ## "'"); \
+		return false; \
+	}
+
+
 #define MAMBI_CFG_IS_STRING(__cfg, __name, __path) \
 	MAMBI_CFG_EXISTS(__cfg, __name, __path) \
 	else if (!(__cfg)[__name].is_string()) { \

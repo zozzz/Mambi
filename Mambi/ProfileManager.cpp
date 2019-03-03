@@ -100,7 +100,7 @@ namespace Mambi
 	void ProfileManager::ReplaceProfile(std::shared_ptr<Profile> current, std::shared_ptr<Profile> replcae)
 	{
 		bool changed = false;
-		for (auto& d : Application::Display().DisplayMap())
+		for (auto& d : Application::Display().Displays())
 		{
 			if (d.second.Profile() == current)
 			{

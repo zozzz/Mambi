@@ -1,19 +1,14 @@
 #pragma once
 #include "Color.h"
 #include "DisplaySample.h"
-#include "Texture.h"
 #include "utils.h"
 
-#ifndef NDEBUG
-#	include "lodepng.h"
-#endif // !NDEBUG
-
-
+#if 0
 
 namespace Mambi
 {
 
-	class DuplicatedOutput
+	class _Ambilight
 	{
 	public:
 		struct Device {
@@ -71,7 +66,7 @@ namespace Mambi
 		class Frame 
 		{
 		public:
-			friend DuplicatedOutput;
+			friend Ambilight;
 
 			Frame(IDXGIOutputDuplication* const duplicatedOutput) 
 				: _duplicatedOutput(duplicatedOutput), 
@@ -141,8 +136,8 @@ namespace Mambi
 		};
 
 
-		DuplicatedOutput(std::shared_ptr<Device> device, CComPtr<IDXGIOutput> output, DXGI_OUTPUT_DESC outputDesc, DISPLAY_DEVICE outputDevice);
-		~DuplicatedOutput();
+		Ambilight(std::shared_ptr<Device> device, CComPtr<IDXGIOutput> output, DXGI_OUTPUT_DESC outputDesc, DISPLAY_DEVICE outputDevice);
+		~Ambilight();
 
 
 		inline auto& Rect() const { return _outputDesc.DesktopCoordinates; }
@@ -150,7 +145,7 @@ namespace Mambi
 		inline auto& Height() const { return _outputDesc.DesktopCoordinates.bottom; }
 
 		static std::shared_ptr<Device> CreateDevice(CComPtr<IDXGIAdapter1> adapter);
-		std::shared_ptr<DuplicatedOutput::Frame> NewFrame();		
+		std::shared_ptr<Ambilight::Frame> NewFrame();		
 
 	private:
 		std::shared_ptr<Device> _device;
@@ -164,7 +159,9 @@ namespace Mambi
 	
 
 #ifndef NDEBUG
-	bool SaveToPng(const char* filename, Texture* texture);
 	bool SaveToPng(const char* filename, D3D11_MAPPED_SUBRESOURCE& map, D3D11_TEXTURE2D_DESC& desc);
 #endif
 }
+
+
+#endif

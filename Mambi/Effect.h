@@ -75,7 +75,7 @@ namespace Mambi
 		}
 
 	protected:
-		uint8_t brightness;
+		uint8_t brightness;		
 	};
 
 
@@ -106,23 +106,33 @@ namespace Mambi
 	};
 
 
-
-	/*
-	class Effect_Ambilight : public Effect {
+	class Effect_Rainbow : public Effect {
 	public:
 		using Effect::Effect;
 
-		virtual void Update(const json& cfg);
-		virtual void Tick();
+		bool Update(const json& cfg);
+		void Init(Display* display);
+		void Tick(Display* display);
+		inline bool Equals(const Effect& other) const
+		{
+			// TODO: ...
+			return duration == static_cast<const Effect_Rainbow&>(other).duration
+				&& brightness == static_cast<const Effect_Rainbow&>(other).brightness;
+		}
+
+	protected:
+		unsigned int duration;
+		uint8_t brightness;
+
+	private:
+		struct Keyframe 
+		{
+			float position;
+			rgb_t color;
+		};
+		typedef std::vector<Keyframe> Keyframes;
+
+		Keyframes _frames;
+		uint8_t _currentFrame;
 	};
-
-
-	class Effect_Breath : public Effect {
-	public:
-		using Effect::Effect;
-
-		virtual void Update(const json& cfg);
-		virtual void Tick();
-	};
-	*/
 }

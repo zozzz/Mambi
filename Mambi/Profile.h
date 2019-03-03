@@ -31,13 +31,13 @@ namespace Mambi
 		inline auto& Priority() const { return _priority; };
 		
 		virtual bool Update(const json& cfg);		
-		virtual bool Test(const Display* display, HWND fgWindow, const char* exe) = 0;
+		virtual bool Test(const Display* display, HWND fgWindow, const std::string& exe) = 0;
 
 		Profile(Profile const&) = delete;
 		void operator=(Profile const&) = delete;
 
 	protected:
-		Profile(const std::string& title, ProfileType type) : _title(title), _type(type), _effect(NULL) {};
+		Profile(const std::string& title, ProfileType type) : _title(title), _type(type), _effect(NULL){};
 	
 		std::string _title;
 		ProfileType _type;
@@ -55,17 +55,21 @@ namespace Mambi
 			Changed
 		};
 
-		AutoProfile() : Profile("Auto", ProfileType::Auto), _selected(NULL) { Console::WriteLine("AutoProfile::AutoProfile"); }
+		AutoProfile() : Profile("Auto", ProfileType::Auto), _selected(NULL), _fgWindow(NULL) { }
 
 		inline auto Selected() const { return _selected; }
 		Mambi::Effect* Effect() const { return _selected->Effect(); }
 
 		Status Detect(const Display* display);
 
-		bool Test(const Display* display, HWND fgWindow, const char* exe) { return false; };
+		bool Test(const Display* display, HWND fgWindow, const std::string& exe) { return false; };
 
 	private:
+		void UpdateExe();
+
 		std::shared_ptr<Profile> _selected;
+		HWND _fgWindow;
+		std::string _fgExe;
 	};
 
 
@@ -73,15 +77,15 @@ namespace Mambi
 	{
 	public:
 		AnyProfile(const std::string& title) : Profile(title, ProfileType::Any) {}	
-		bool Test(const Display* display, HWND fgWindow, const char* exe) { return true; };
+		bool Test(const Display* display, HWND fgWindow, const std::string& exe) { return true; };
 	};
 
 
-	class GameProfile : public Profile
+	class FullScreenProfile : public Profile
 	{
 	public:
-		GameProfile(const std::string& title) : Profile(title, ProfileType::Any) {}	
-		bool Test(const Display* display, HWND fgWindow, const char* exe);
+		FullScreenProfile(const std::string& title) : Profile(title, ProfileType::Any) {}	
+		bool Test(const Display* display, HWND fgWindow, const std::string& exe);
 	};
 
 
@@ -89,7 +93,7 @@ namespace Mambi
 	{
 	public:
 		SpecifiedProfile(const std::string& title, const std::string& exe) : Profile(title, ProfileType::Any), _exe(exe) {}	
-		bool Test(const Display* display, HWND fgWindow, const char* exe);
+		bool Test(const Display* display, HWND fgWindow, const std::string& exe);
 
 	private:
 		std::string _exe;

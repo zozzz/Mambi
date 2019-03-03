@@ -58,6 +58,15 @@ namespace Mambi
 		Write(msgSize);
 	}
 
+	void LedStrip::Transition(uint16_t duration, const rgb_t* info, DWORD size) const
+	{
+		DWORD msgSize = const_cast<LedStrip*>(this)->CreateMessage(
+			Command::CMDTransition, 
+			(BYTE*)&duration, sizeof(uint16_t),
+			(BYTE*)info, sizeof(rgb_t) * size);
+		Write(msgSize);
+	}
+
 
 	void LedStrip::Off() const
 	{
@@ -75,7 +84,13 @@ namespace Mambi
 
 	DWORD LedStrip::CreateMessage(Command cmd, BYTE* payload, uint8_t payloadSize)
 	{
-		DWORD size = ARRAYSIZE(Header) + 2 + payloadSize;
+		return CreateMessage(cmd, NULL, 0, payload, payloadSize);
+	}
+
+
+	DWORD LedStrip::CreateMessage(Command cmd, BYTE* params, uint8_t paramsSize, BYTE* payload, uint8_t payloadSize)
+	{
+		DWORD size = ARRAYSIZE(Header) + 2 + payloadSize + paramsSize;
 		if (!_message.EnsureSize(size))
 		{
 			return 0;
@@ -86,12 +101,20 @@ namespace Mambi
 			return 0;
 		}
 		
-		_message[ARRAYSIZE(Header)] = payloadSize;
+		_message[ARRAYSIZE(Header)] = payloadSize + paramsSize;
 		_message[ARRAYSIZE(Header) + 1] = cmd;
+
+		if (paramsSize > 0)
+		{
+			if (!_message.Append(ARRAYSIZE(Header) + 2, params, paramsSize))
+			{
+				return 0;
+			}
+		}
 
 		if (payloadSize > 0)
 		{
-			if (!_message.Append(ARRAYSIZE(Header) + 2, payload, payloadSize))
+			if (!_message.Append(ARRAYSIZE(Header) + 2 + paramsSize, payload, payloadSize))
 			{
 				return 0;
 			}

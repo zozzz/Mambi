@@ -1,7 +1,6 @@
 #pragma once
 #include "stdafx.h"
 #include "DuplicatedOutput.h"
-#include "DisplaySample.h"
 #include "Profile.h"
 #include "LedStrip.h"
 #include "utils.h"
@@ -34,23 +33,12 @@ namespace Mambi
 		inline auto& HardwareId() const { return _hardwareId; };
 		inline auto  Profile() const { return _profile; };
 		inline void  Profile(std::shared_ptr<Mambi::Profile> profile) { _profile = profile; };
-		inline auto& DupedOutput() const { return _output; };
-		inline auto& Samples() { return _samples; };
+		inline auto  Ambilight() const { return _ambilight; };
 		inline auto& NativeWidth() const { return _nativeW; }
 		inline auto& NativeHeight() const { return _nativeH; }
-		inline auto& DesktopWidth() const { return _output->Width(); }
-		inline auto& DesktopHeight() const { return _output->Height(); }
 		inline auto& LedStrip() const { return _ledStrip; };
 		inline auto& Colors() { return _colors; }
-		inline std::shared_ptr<DuplicatedOutput::Frame> Frame() const { 
-			if (!_frame)
-			{
-				const_cast<Display*>(this)->_frame = const_cast<Display*>(this)->_output->NewFrame();
-			}
-			return _frame; 
-		}		
-
-		void DupedOutput(DuplicatedOutput* output);
+		
 		bool Update(const std::string& id, const json& cfg);
 		
 		Display(Display const&) = delete;
@@ -59,19 +47,16 @@ namespace Mambi
 	private:
 		static DWORD WINAPI EffectThread(LPVOID param);
 
-		bool UpdateSamples();
 		void StartEffectThread();
 		void StopEffectThread();
 
 		std::string _hardwareId;
 		std::shared_ptr<Mambi::Profile> _profile;
 		std::shared_ptr<Mambi::LedStrip> _ledStrip;
-		LedStrip::IndexType _stripOffset;
 		DisplayDim _nativeW;
 		DisplayDim _nativeH;		
-		Mambi::DisplaySamples _samples;		
-		DuplicatedOutput* _output;
-		std::shared_ptr<DuplicatedOutput::Frame> _frame;
+		std::shared_ptr<Mambi::Ambilight> _ambilight;
+
 		HANDLE _hEffectThread;
 		Mambi::Buffer<rgb_t> _colors;
 	};

@@ -7,6 +7,9 @@
 
 namespace Mambi
 {
+
+#pragma region Effect
+
 	Effect* Effect::New(const json& cfg)
 	{
 		Effect* res;
@@ -21,6 +24,10 @@ namespace Mambi
 		else if (cfg["type"] == "static")
 		{
 			res = new Effect_Static("static");
+		}
+		else if (cfg["type"] == "rainbow")
+		{
+			res = new Effect_Rainbow("rainbow");
 		}
 		else
 		{
@@ -47,6 +54,10 @@ namespace Mambi
 	{
 	}
 
+#pragma endregion
+
+
+#pragma region Effect_Ambilight
 
 	bool Effect_Ambilight::Update(const json& cfg)
 	{
@@ -62,52 +73,36 @@ namespace Mambi
 
 	void Effect_Ambilight::Init(Display* display)
 	{
-		if (!display->Colors().EnsureSize(display->Samples().Items().size()))
+		if (!display->Colors().EnsureSize(display->Ambilight()->Samples()->Items().size()))
 		{
 			ErrorAlert("Error", "Out of memory");
 			PostQuitMessage(1);
 		}
-		display->LedStrip()->SetBrightness(brightness);
+		display->Colors().Zero();
+		display->LedStrip()->SetBrightness(brightness);		
 	}
 
 
 	void Effect_Ambilight::Tick(Display* display)
 	{
-		auto frame = display->Frame();
-		auto& samples = display->Samples();
-		auto& colors = display->Colors();
-
-		if (frame->Acquire())
+		auto ambilight = display->Ambilight();
+		if (ambilight->ProcessSamples())
 		{
-			frame->UpdateSamples(samples);
-			frame->Release();
+			auto& data = display->Colors();
+			size_t i = 0;
+			for (auto& sample : ambilight->Samples()->Items())
+			{
+				data[i++] = sample.Avg;
+			}
 		}
-
-		int i = 0;
-		for (auto& sample : samples.Items())
-		{
-			colors[i++] = sample.avg;
-			//Console::WriteLine("AVG(%d, %d, %d)", sample.avg.r, sample.avg.g, sample.avg.b);
-		}
-
-		display->LedStrip()->Light(colors, i);
-
-		/*
-		auto frame = display->DupedOutput()->AcquireNextFrame();
-		auto& samples = display->Samples();
-		auto& colors = display->Colors();
-		frame->UpdateSamples(samples);
-
-		int i = 0;
-		for (auto& s: samples.Items())
-		{
-			colors[i++] = s.Avg();
-		}
-
-		display->LedStrip()->Light(colors, display->Samples().Items().size());
-		*/
+		//display->LedStrip()->Light(display->Colors(), display->LedStrip()->Count());
+		display->LedStrip()->Transition(interval, display->Colors(), display->LedStrip()->Count());
 	}
 
+#pragma endregion
+
+
+#pragma region Effect_Breath
 
 	bool Effect_Breath::Update(const json& cfg)
 	{
@@ -173,6 +168,10 @@ namespace Mambi
 		++_currentFrame;
 	}
 
+#pragma endregion
+
+
+#pragma region Effect_Static
 
 	bool Effect_Static::Update(const json& cfg)
 	{
@@ -208,4 +207,98 @@ namespace Mambi
 		display->LedStrip()->Light(display->Colors(), display->LedStrip()->Count());
 	}
 
+#pragma endregion
+
+
+#pragma region Effect_Rainbow
+
+	bool Effect_Rainbow::Update(const json& cfg)
+	{
+		Console::WriteLine("Effect_Rainbow::Update");
+		MAMBI_CFG_VNUM_INT_RANGE(cfg, "duration", "profile / rainbow effect", 0, 100000);
+		MAMBI_CFG_VNUM_INT_RANGE(cfg, "brightness", "profile / rainbow effect", 0, 255);
+		MAMBI_CFG_IS_ARRAY(cfg, "colors", "profile / rainbow effect");
+
+		duration = cfg["duration"];
+		brightness = cfg["brightness"];
+
+		_frames.clear();
+
+		for (auto& item: cfg["colors"]) 
+		{
+			if (item.is_array() && item.size() == 2)
+			{
+				Keyframe kf;
+				kf.position = item[0];
+				if (!Color::RedFromHex(kf.color, item[1].get<std::string>())) 
+				{
+					_frames.clear();
+					ErrorAlert("Mambi", "Colors entry must be array with size of 2 in 'profile / rainbow effect'");
+					return false;
+				}
+				_frames.push_back(kf);
+			}
+			else
+			{
+				_frames.clear();
+				ErrorAlert("Mambi", "Colors entry must be array with size of 2 in 'profile / rainbow effect'");
+				return false;
+			}
+		}
+
+		if (_frames.size() < 1)
+		{
+			ErrorAlert("Mambi", "Colors must have at least two entry in 'profile / rainbow effect'");
+			return false;
+		}
+
+		interval = 0;
+
+		return true;
+	}
+
+
+	void Effect_Rainbow::Init(Display* display)
+	{
+		display->LedStrip()->SetBrightness(brightness);		
+	}
+
+	void Effect_Rainbow::Tick(Display* display)
+	{
+		LedStrip::IndexType lc = display->LedStrip()->Count();
+		auto& data = display->Colors();
+
+		if (_currentFrame == 0) 
+		{
+			auto& frame = _frames[0];
+			for (LedStrip::IndexType i = 0; i < lc; ++i)
+			{
+				data[i] = frame.color;
+			}
+			display->LedStrip()->Light(display->Colors(), display->LedStrip()->Count());
+			interval = 0;
+			Console::WriteLine("FRAME %d RGB(%d, %d, %d) ~ %d", _currentFrame, frame.color.r, frame.color.g, frame.color.b, interval);
+			++_currentFrame;
+		}
+		else if (_currentFrame < _frames.size())
+		{
+			auto& frame = _frames[_currentFrame];
+			for (LedStrip::IndexType i = 0; i < lc; ++i)
+			{
+				data[i] = frame.color;
+			}
+
+			interval = static_cast<UINT16>(round((_frames[_currentFrame].position - _frames[_currentFrame - 1].position) * duration));
+			Console::WriteLine("FRAME %d RGB(%d, %d, %d) ~ %d", _currentFrame, frame.color.r, frame.color.g, frame.color.b, interval);
+			display->LedStrip()->Transition(interval, display->Colors(), display->LedStrip()->Count());
+			++_currentFrame;
+		}
+		else
+		{
+			_currentFrame = 0;
+			interval = 0;
+		}		
+	}
+
+#pragma endregion
 }

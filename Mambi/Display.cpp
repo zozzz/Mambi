@@ -12,31 +12,21 @@
 namespace Mambi
 {
 
-	Display::Display(): _output(NULL), _profile(NULL), _hEffectThread(NULL), _frame(NULL)
+	Display::Display(): _ambilight(NULL), _profile(NULL), _hEffectThread(NULL)
 	{		
 	}
 
 
 	Display::~Display()
 	{
-		StopEffectThread();
-		DupedOutput(NULL);		
+		StopEffectThread();		
 	}	
-
-
-	void Display::DupedOutput(DuplicatedOutput* output)
-	{
-		if (_output != NULL)
-		{
-			delete _output;
-		}
-		_output = output;
-		UpdateSamples();
-	}
 
 
 	bool Display::Update(const std::string& id, const json& cfg)
 	{
+		StopEffectThread();
+
 		_hardwareId = id;
 		MAMBI_CFG_VNUM_INT_RANGE(cfg, "width", "display.*", 0, 65535);
 		MAMBI_CFG_VNUM_INT_RANGE(cfg, "height", "display.*", 0, 65535);
@@ -47,38 +37,64 @@ namespace Mambi
 		auto& samples = cfg["samples"];
 		MAMBI_CFG_IS_OBJECT(samples, "horizontal", "display.*.samples");
 		auto& samplesH = samples["horizontal"];
-		MAMBI_CFG_VNUM_INT_RANGE(samplesH, "width", "display.*.samples.horizontal", 0, 65535);
-		MAMBI_CFG_VNUM_INT_RANGE(samplesH, "height", "display.*.samples.horizontal", 0, 65535);
-		MAMBI_CFG_VNUM_INT_RANGE(samplesH, "margin", "display.*.samples.horizontal", 0, 65535);
+		MAMBI_CFG_VNUM_INT_RANGE(samplesH, "width", "display.*.samples.horizontal", MAMBI_SAMPLE_MIN_WIDTH, 65535);
+		MAMBI_CFG_VNUM_INT_RANGE(samplesH, "height", "display.*.samples.horizontal", MAMBI_SAMPLE_MIN_HEIGHT, 65535);
+		MAMBI_CFG_VNUM_INT_RANGE(samplesH, "hpadding", "display.*.samples.horizontal", 0, 65535);
+		MAMBI_CFG_VNUM_INT_RANGE(samplesH, "vpadding", "display.*.samples.horizontal", 0, 65535);
 		MAMBI_CFG_IS_OBJECT(samples, "vertical", "display.*.samples");
 		auto& samplesV = samples["vertical"];
-		MAMBI_CFG_VNUM_INT_RANGE(samplesV, "width", "display.*.samples.vertical", 0, 65535);
-		MAMBI_CFG_VNUM_INT_RANGE(samplesV, "height", "display.*.samples.vertical", 0, 65535);
-		MAMBI_CFG_VNUM_INT_RANGE(samplesV, "margin", "display.*.samples.horizontal", 0, 65535);
+		MAMBI_CFG_VNUM_INT_RANGE(samplesV, "width", "display.*.samples.vertical", MAMBI_SAMPLE_MIN_WIDTH, 65535);
+		MAMBI_CFG_VNUM_INT_RANGE(samplesV, "height", "display.*.samples.vertical", MAMBI_SAMPLE_MIN_HEIGHT, 65535);
+		MAMBI_CFG_VNUM_INT_RANGE(samplesV, "hpadding", "display.*.samples.horizontal", 0, 65535);
+		MAMBI_CFG_VNUM_INT_RANGE(samplesV, "vpadding", "display.*.samples.horizontal", 0, 65535);
 
 		_nativeW = cfg["width"];
 		_nativeH = cfg["height"];
 
-		DisplaySampleFactory<SampleOrient::Horizontal> sh(samplesH["width"], samplesH["height"], samplesH["margin"]);
-		DisplaySampleFactory<SampleOrient::Vertical> sv(samplesV["width"], samplesV["height"], samplesV["margin"]);
-		_samples = DisplaySamples(sh, sv);
-
+		// TODO: error check
 		_ledStrip = Application::Led().Get(ledStrip["name"]);
-		_stripOffset = ledStrip["offset"];
-
 		if (!_colors.EnsureSize(_ledStrip->Count()))
 		{
 			ErrorAlert("Error", "Out of memory");
 			return false;
 		}
 
-		if (Application::Enabled()) 
+		SampleDesc hDesc = {
+			/* HPadding */ samplesH["hpadding"],
+			/* VPadding */ samplesH["vpadding"],
+			/* Width */    samplesH["width"],
+			/* Height */   samplesH["height"],
+			/* Count */    _ledStrip->HCount()
+		};
+		SampleDesc VDesc = {
+			/* HPadding */ samplesV["hpadding"],
+			/* VPadding */ samplesV["vpadding"],
+			/* Width */    samplesV["width"],
+			/* Height */   samplesV["height"],
+			/* Count */    _ledStrip->VCount()
+		};
+
+#if MAMBI_SP_SSE
+		if (hDesc.Width % MAMBI_SP_SSE_PIXEL_PER_CYCLE != 0)
 		{
-			if (UpdateSamples())
-			{
-				StartEffectThread();
-				return true;
-			}
+			ErrorAlert("Mambi", "display.*.samples.horizontal.width mist be deviadable with " MAMBI_STRINGIFY(MAMBI_SP_SSE_PIXEL_PER_CYCLE));
+			return false;
+		}
+		if (VDesc.Width % MAMBI_SP_SSE_PIXEL_PER_CYCLE != 0)
+		{
+			ErrorAlert("Mambi", "display.*.samples.horizontal.width mist be deviadable with " MAMBI_STRINGIFY(MAMBI_SP_SSE_PIXEL_PER_CYCLE));
+			return false;
+		}
+#endif
+
+		_ambilight.reset();
+		_ambilight = std::make_shared<Mambi::Ambilight>(id.c_str());
+		_ambilight->UpdateSamplesDesc(hDesc, VDesc, ledStrip["offset"]);
+		
+		if (Application::Enabled()) 
+		{			
+			StartEffectThread();
+			return true;
 		}
 		else 
 		{
@@ -86,20 +102,6 @@ namespace Mambi
 		}
 		
 		return false;
-	}
-
-
-	bool Display::UpdateSamples()
-	{
-		if (_output == NULL)
-		{
-			return true;
-		}
-
-		_samples.Update(DesktopWidth(), DesktopHeight(), _nativeW, _nativeH, _ledStrip->HCount(), _ledStrip->VCount());
-		_samples.Move(_stripOffset);
-
-		return true;
 	}
 
 
@@ -125,8 +127,6 @@ namespace Mambi
 
 	DWORD WINAPI Display::EffectThread(LPVOID param)
 	{
-		Console::WriteLine("Display::EffectThread");
-
 		Display* display = reinterpret_cast<Display*>(param);
 		Mambi::Profile* profile;
 		Mambi::Effect* effect = NULL;
@@ -134,7 +134,7 @@ namespace Mambi
 		auto detectTime = std::chrono::high_resolution_clock::now();
 		auto effectTime = std::chrono::high_resolution_clock::now();
 		int elapsed;
-		INT16 interval;
+		int interval;
 
 		while (true)
 		{
@@ -176,7 +176,8 @@ namespace Mambi
 				if (effect == NULL)
 				{
 					effect = profile->Effect();
-					effect->Init(display);					
+					effect->Init(display);
+					elapsed = effect->interval;
 				}
 				else
 				{
@@ -190,11 +191,11 @@ namespace Mambi
 					{
 						effect->Init(display);						
 					}
+
+					elapsed = (int)std::chrono::duration_cast<std::chrono::milliseconds>(now - effectTime).count();
 				}
 
 				interval = effect->interval;
-				elapsed = (int) std::chrono::duration_cast<std::chrono::milliseconds>(now - effectTime).count();				
-
 				if (elapsed >= interval)
 				{
 					effect->Tick(display);
@@ -205,7 +206,9 @@ namespace Mambi
 
 					lock.Release();
 					
-					interval = (interval - (elapsed - interval));
+					// Rainbow effect replace interval value after Tick
+					interval = effect->interval;
+					interval -= (elapsed - interval);
 					interval = max(0, interval);					
 				}
 				else

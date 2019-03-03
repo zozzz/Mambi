@@ -101,6 +101,10 @@ namespace Mambi {
 			OnDisplayChange();
 			break;
 
+		case WM_DEVICECHANGE:
+			Console::WriteLine("WM_DEVICECHANGE");
+			break;
+
 		case WM_PAINT:
 			Console::WriteLine("WM_PAINT %d, %d", wParam, lParam);
 			break;
@@ -136,6 +140,7 @@ namespace Mambi {
 
 	void Application::OnDisplayChange()
 	{
+		Console::WriteLine("WM_DISPLAYCHANGE");
 		OnConfigUpdate();
 	}
 

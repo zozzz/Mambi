@@ -8,11 +8,13 @@
 //#include "PixelShader.h"
 
 
+#if 0
+
 namespace Mambi {
 
-	std::shared_ptr<DuplicatedOutput::Device> DuplicatedOutput::CreateDevice(CComPtr<IDXGIAdapter1> adapter)
+	std::shared_ptr<Ambilight::Device> Ambilight::CreateDevice(CComPtr<IDXGIAdapter1> adapter)
 	{
-		std::shared_ptr<DuplicatedOutput::Device> device(new DuplicatedOutput::Device());
+		std::shared_ptr<Ambilight::Device> device(new Ambilight::Device());
 
 		D3D_FEATURE_LEVEL featureLevels[] =
 		{
@@ -93,7 +95,7 @@ namespace Mambi {
 	}
 
 
-	DuplicatedOutput::DuplicatedOutput(std::shared_ptr<DuplicatedOutput::Device> device, CComPtr<IDXGIOutput> output, DXGI_OUTPUT_DESC outputDesc, DISPLAY_DEVICE outputDevice)
+	Ambilight::Ambilight(std::shared_ptr<Ambilight::Device> device, CComPtr<IDXGIOutput> output, DXGI_OUTPUT_DESC outputDesc, DISPLAY_DEVICE outputDevice)
 		: _device(device), _output(output), _outputDesc(outputDesc), _outputDevice(outputDevice)
 	{
 
@@ -118,13 +120,13 @@ namespace Mambi {
 	}
 
 
-	DuplicatedOutput::~DuplicatedOutput()
+	Ambilight::~Ambilight()
 	{
 	}
 
-	std::shared_ptr<DuplicatedOutput::Frame> DuplicatedOutput::NewFrame()
+	std::shared_ptr<Ambilight::Frame> Ambilight::NewFrame()
 	{
-		return std::shared_ptr<DuplicatedOutput::Frame>(new DuplicatedOutput::Frame(_duplicatedOutput));
+		return std::shared_ptr<Ambilight::Frame>(new Ambilight::Frame(_duplicatedOutput));
 		
 		/*
 		std::shared_ptr<DuplicatedOutput::Frame> frame(new DuplicatedOutput::Frame(_duplicatedOutput));
@@ -223,7 +225,7 @@ namespace Mambi {
 	*/
 
 
-	bool DuplicatedOutput::Frame::Acquire()
+	bool Ambilight::Frame::Acquire()
 	{
 		Release();
 
@@ -280,7 +282,7 @@ namespace Mambi {
 	}
 
 // https://stackoverflow.com/questions/20784385/calculate-average-of-pixels-in-the-front-buffer-of-the-gpu-without-copying-the-f
-	bool DuplicatedOutput::Frame::UpdateSamples(DisplaySamples& samples)
+	bool Ambilight::Frame::UpdateSamples(DisplaySamples& samples)
 	{
 		ID3D11Device* device;
 		ID3D11DeviceContext* context;
@@ -372,7 +374,7 @@ namespace Mambi {
 	}
 
 
-	void DuplicatedOutput::Frame::CopySamplesRect(ID3D11DeviceContext* context, DisplaySamples& samples)
+	void Ambilight::Frame::CopySamplesRect(ID3D11DeviceContext* context, DisplaySamples& samples)
 	{
 		//assert(_samplesText != NULL);
 		for (auto sample : samples.Items())
@@ -382,19 +384,19 @@ namespace Mambi {
 	}
 
 
-	bool DuplicatedOutput::Frame::CopyMoveRects()
+	bool Ambilight::Frame::CopyMoveRects()
 	{
 		return true;
 	}
 
 
-	bool DuplicatedOutput::Frame::CopyDirtyRects()
+	bool Ambilight::Frame::CopyDirtyRects()
 	{
 		return true;
 	}
 
 
-	void DuplicatedOutput::Frame::Release()
+	void Ambilight::Frame::Release()
 	{
 		if (_deskText != NULL)
 		{
@@ -406,7 +408,7 @@ namespace Mambi {
 
 
 	// https://www.compuphase.com/graphic/scale3.htm
-	bool DuplicatedOutput::Frame::_UpdateSamples(DisplaySamples& samples, D3D11_MAPPED_SUBRESOURCE& map)
+	bool Ambilight::Frame::_UpdateSamples(DisplaySamples& samples, D3D11_MAPPED_SUBRESOURCE& map)
 	{
 		bgra_t* data = (bgra_t*)map.pData;
 		bgra_t& pixel = data[0];
@@ -573,3 +575,6 @@ namespace Mambi {
 #endif // !NDEBUG
 
 }
+
+
+#endif

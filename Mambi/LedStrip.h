@@ -23,7 +23,8 @@ namespace Mambi
 		{
 			CMDOff = 0x01,
 			CMDUpdate = 0x02,
-			CMDBrightness = 0x03
+			CMDBrightness = 0x03,
+			CMDTransition = 0x04
 		};
 
 		LedStrip();
@@ -35,6 +36,7 @@ namespace Mambi
 		inline IndexType Count() const { return _count; };
 		bool Update(const json& cfg);
 		void Light(const rgb_t* info, DWORD size) const;
+		void Transition(uint16_t duration, const rgb_t* info, DWORD size) const;
 		void Off() const;
 		void SetBrightness(uint8_t brightness) const;
 
@@ -43,6 +45,7 @@ namespace Mambi
 
 	private:
 		DWORD CreateMessage(Command cmd, BYTE* payload, uint8_t payloadSize);
+		DWORD CreateMessage(Command cmd, BYTE* params, uint8_t paramsSize, BYTE* payload, uint8_t payloadSize);
 		bool Write(DWORD size) const;
 
 		ComPort* _port;

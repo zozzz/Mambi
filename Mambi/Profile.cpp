@@ -14,9 +14,9 @@ namespace Mambi
 		MAMBI_CFG_IS_STRING(cfg, "fgApplication", "profile.*");
 		std::string fgApplication = cfg["fgApplication"].get<std::string>();
 		
-		if (fgApplication == "game")
+		if (fgApplication == "fullscreen")
 		{
-			return std::shared_ptr<Profile>(new GameProfile(title));
+			return std::shared_ptr<Profile>(new FullScreenProfile(title));
 		}
 		else if (fgApplication == "any")
 		{
@@ -77,82 +77,59 @@ namespace Mambi
 
 	AutoProfile::Status AutoProfile::Detect(const Display* display)
 	{
-		Console::WriteLine("AutoProfile::Detect %s", display->HardwareId().c_str());
-		Status status = Status::Failed;
+		//Console::WriteLine("AutoProfile::Detect %s", display->HardwareId().c_str());		
 
 		std::vector<Profile*> possible;
-
 		HWND fgWindow = GetForegroundWindow();
-		const char* exe = "";
+
+		if (_fgWindow != fgWindow)
+		{
+			_fgWindow = fgWindow;
+			UpdateExe();			
+		}
 
 		for (auto p: Application::Profile().Profiles())
 		{
-			if (p.second->Test(display, fgWindow, exe))
+			if (p.second->Test(display, fgWindow, _fgExe))
 			{
 				possible.push_back(p.second.get());
 			}
 		}
 
-		// TODO: _selected = WeakRef
+		std::shared_ptr<Profile> selected;
 
-		if (possible.size() > 0)
+		switch (possible.size())
 		{
-			std::sort(possible.begin(), possible.end(), SortByPriority);
-			auto selected = Application::Profile().Profiles().at(possible[0]->Title());;
+		case 0:
+			return Status::Failed;
 
-			if (_selected != selected)
-			{
-				_selected = selected;
-				_title = "Auto: " + selected->Title();
-				//Console::WriteLine("Auto detected: %s(%d)", _effect->Type().c_str(), _effect->interval);
-				status = Status::Changed;
-				SendMessage(Application::WindowHandle(), WM_MAMBI_PROFILE_CHANGED, 0, 0);
-			}
-			else
-			{
-				status = Status::Success;
-			}			
+		case 1:
+			selected = Application::Profile().Profiles().at(possible[0]->Title());
+			break;
+
+		default:
+			std::sort(possible.begin(), possible.end(), SortByPriority);
+			selected = Application::Profile().Profiles().at(possible[0]->Title());
 		}
 
-		//Console::WriteLine("AutoProfile::Detect return with %d", status);
-
-		return status;
+		if (_selected != selected)
+		{
+			_selected = selected;
+			_title = "Auto: " + selected->Title();
+			Console::WriteLine("Auto detected: %s(%d)", Effect()->Type().c_str(), Effect()->interval);
+			SendMessage(Application::WindowHandle(), WM_MAMBI_PROFILE_CHANGED, 0, 0);
+			return Status::Changed;
+		}
+		else
+		{
+			return Status::Success;
+		}		
 	}
 
-
-	bool GameProfile::Test(const Display* display, HWND fgWindow, const char* exe)
+	void AutoProfile::UpdateExe()
 	{
-		return false;
-	}
-
-
-	bool SpecifiedProfile::Test(const Display* display, HWND fgWindow, const char* exe)
-	{
-		return false;
-	}
-
-	/*
-	bool Profile::DetectGame(HWND fgWindow)
-	{
-		RECT desktop, wnd;
-
-		GetWindowRect(fgWindow, &wnd);
-		GetWindowRect(GetDesktopWindow(), &desktop);
-
-		return desktop.left == wnd.left 
-			&& desktop.top == wnd.top 
-			&& desktop.right == wnd.right 
-			&& desktop.bottom == wnd.bottom;		
-	}	
-
-
-	bool Profile::DetectSpecified(HWND fgWindow)
-	{
-		bool result = false;
-
 		DWORD pid;
-		GetWindowThreadProcessId(fgWindow, &pid);
-
+		GetWindowThreadProcessId(_fgWindow, &pid);
 		HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
 
 		if (hProc)
@@ -166,19 +143,45 @@ namespace Mambi
 				{
 					if (path[i] == '\\')
 					{
-						std::string exe(path + i + 1, path + l);
-						if (_exe == exe)
-						{
-							result = true;
-						}						
+						_fgExe = std::string(path + i + 1, path + l);
 						break;
-					}					
-				}				
+					}
+				}
 			}
 			CloseHandle(hProc);
-		}	
-
-		return result;
+		}
 	}
-	*/
+
+
+	bool FullScreenProfile::Test(const Display* display, HWND fgWindow, const std::string& exe)
+	{
+		if (!display->Ambilight()->Available())
+		{
+			return false;
+		}
+
+		RECT wndRect;
+		RECT desktop = display->Ambilight()->Output()->Desc.DesktopCoordinates;
+		GetWindowRect(fgWindow, &wndRect);
+
+		/*
+		Console::WriteLine("%s // %d >= %d && %d >= %d && %d <= %d && %d <= %d",
+			exe.c_str(),
+			desktop.left , wndRect.left,
+			desktop.top , wndRect.top,
+			desktop.right , wndRect.right,
+			desktop.bottom , wndRect.bottom);
+		*/
+
+		return desktop.left >= wndRect.left
+			&& desktop.top >= wndRect.top
+			&& desktop.right <= wndRect.right
+			&& desktop.bottom <= wndRect.bottom;
+	}
+
+
+	bool SpecifiedProfile::Test(const Display* display, HWND fgWindow, const std::string& exe)
+	{
+		return _exe == exe;
+	}	
 }

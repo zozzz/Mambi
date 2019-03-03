@@ -4,6 +4,15 @@
 #include "Console.h"
 
 
+#define MAMBI_SERIAL_READ_BUFFER 500
+#define MAMBI_SERIAL_READ_TIMEOUT 10
+#if _DEBUG
+#  define MAMBI_SERIAL_READ 0
+#else
+#  define MAMBI_SERIAL_READ 0
+#endif
+
+
 namespace Mambi
 {
 
@@ -15,8 +24,8 @@ namespace Mambi
 		{
 			_handle = CreateFileA(
 				_name.c_str(),
-				GENERIC_WRITE,
-				0,
+				GENERIC_READ | GENERIC_WRITE,
+				FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
 				NULL,
 				OPEN_EXISTING,
 				0,
@@ -44,6 +53,20 @@ namespace Mambi
 				{
 					throw new std::exception("Failed to init serial");
 				}
+
+#if MAMBI_SERIAL_READ
+				COMMTIMEOUTS timeouts = { 
+					0,  //interval timeout. 0 = not used
+					0,  // read multiplier
+					MAMBI_SERIAL_READ_TIMEOUT, // read constant (milliseconds)
+					0,  // Write multiplier
+					0   // Write Constant
+				};
+				if (!SetCommTimeouts(_handle, &timeouts))
+				{
+					throw new std::exception("Failed to init serial");
+				}
+#endif
 			}
 			else
 			{
@@ -53,6 +76,10 @@ namespace Mambi
 				PostQuitMessage(1);
 			}
 
+#if MAMBI_SERIAL_READ
+			WatchInput();
+#endif
+
 		};
 
 		~Serial() 
@@ -61,6 +88,15 @@ namespace Mambi
 			{
 				CloseHandle(_handle);
 			}
+
+#if MAMBI_SERIAL_READ
+			if (_inputThread != NULL)
+			{
+				TerminateThread(_inputThread, 0);
+				CloseHandle(_inputThread);
+				_inputThread = NULL;
+			}
+#endif
 		};
 
 		inline auto& Name() const { return _name; }
@@ -75,5 +111,43 @@ namespace Mambi
 	private:
 		HANDLE _handle;
 		std::string _name;
+
+#if MAMBI_SERIAL_READ
+		HANDLE _inputThread = NULL;
+
+		void WatchInput() 
+		{
+			if (_inputThread == NULL)
+			{
+				_inputThread = CreateThread(NULL, 0, WatcherThread, this, 0, NULL);
+			}
+		}
+
+		static DWORD WINAPI WatcherThread(LPVOID param)
+		{
+			Serial<BR>* self = reinterpret_cast<Serial<BR>*>(param);
+			char buff[MAMBI_SERIAL_READ_BUFFER + 1];
+			DWORD readed;
+
+			while (true)
+			{
+				ReadFile(self->_handle, buff, MAMBI_SERIAL_READ_BUFFER, &readed, NULL);
+				if (readed > 0)
+				{
+					size_t tmpSize = readed + self->_name.size() + 9;
+					char* tmp = new char[tmpSize];
+					buff[readed] = 0;
+					sprintf_s(tmp, tmpSize, "[%s] << %s", self->_name.c_str(), buff);
+					tmp[tmpSize - 1] = 0;
+					OutputDebugStringA(tmp);
+					delete[] tmp;
+				}
+
+				Sleep(MAMBI_SERIAL_READ_TIMEOUT);
+			}
+
+			return 0;
+		}
+#endif
 	};
 }

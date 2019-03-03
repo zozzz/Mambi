@@ -94,7 +94,7 @@ namespace Mambi
 	void TrayMenu::UpdateProfile()
 	{
 		_profileItems.clear();
-		auto& displays = Application::Display().DisplayMap();
+		auto& displays = Application::Display().Displays();
 		std::vector<std::string> remove;
 
 		for (auto& p : _profileMenus) 

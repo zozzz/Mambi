@@ -7,6 +7,7 @@
 namespace Mambi
 {
 
+#if 0
 	bool DisplayManager::UpdateOutputs()
 	{
 		CComPtr<IDXGIFactory1> factory;
@@ -26,7 +27,7 @@ namespace Mambi
 		return true;
 	}
 
-	std::shared_ptr<DuplicatedOutput::Device> DisplayManager::GetDevice(CComPtr<IDXGIAdapter1> adapter)
+	std::shared_ptr<Ambilight::Device> DisplayManager::GetDevice(CComPtr<IDXGIAdapter1> adapter)
 	{
 		DXGI_ADAPTER_DESC1 spec;
 
@@ -34,7 +35,7 @@ namespace Mambi
 		{
 			if (_devices.find(spec.DeviceId) == _devices.end())
 			{
-				return _devices[spec.DeviceId] = DuplicatedOutput::CreateDevice(adapter);
+				return _devices[spec.DeviceId] = Ambilight::CreateDevice(adapter);
 			}
 			else
 			{
@@ -44,6 +45,7 @@ namespace Mambi
 
 		return nullptr;
 	}
+#endif
 
 
 	bool DisplayManager::Update()
@@ -97,12 +99,12 @@ namespace Mambi
 			_displays.erase(el);
 		}
 
-		UpdateOutputs();
+		//UpdateOutputs();
 
 		return true;
 	}
 
-
+#if 0
 	bool DisplayManager::UpdateDisplays(CComPtr<IDXGIAdapter1> adapter, DisplayManager::Displays& displays)
 	{
 		bool res = false;
@@ -150,7 +152,7 @@ namespace Mambi
 						auto& display = displays[displayKey];
 						if (display.DupedOutput() == NULL)
 						{
-							display.DupedOutput(new DuplicatedOutput(dev, output, desc, device));
+							display.DupedOutput(new Ambilight(dev, output, desc, device));
 						}
 					}
 
@@ -171,4 +173,6 @@ namespace Mambi
 
 		return res;
 	}
+#endif
+
 }

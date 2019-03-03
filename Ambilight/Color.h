@@ -1,9 +1,8 @@
 #pragma once
 #include "stdafx.h"
-#include "Console.h"
 
 
-namespace Mambi 
+namespace Mambi
 {
 
 #pragma pack(push, 1)
@@ -58,7 +57,7 @@ namespace Mambi
 	inline bool operator!=(const rgba_t& a, const rgba_t& b) { return a.r != b.r || a.g != b.g || a.b != b.b || a.a != b.a; }
 
 
-	namespace Color 
+	namespace Color
 	{
 		inline bool RedFromHex(rgb_t& into, const std::string& hex)
 		{
@@ -66,7 +65,7 @@ namespace Mambi
 			{
 				return false;
 			}
-			
+
 #pragma warning( push )
 #pragma warning( disable : 4477)
 			unsigned int r, g, b;
@@ -95,21 +94,21 @@ namespace Mambi
 #pragma warning( disable : 4477)
 			unsigned int r, g, b;
 			unsigned int c = sscanf_s(hex.c_str(), "%02x%02x%02x", &r, &g, &b);
-			if (c == 3) 
+			if (c == 3)
 			{
 				into.r = r;
 				into.g = g;
 				into.b = b;
 				return true;
 			}
-			return false;			
+			return false;
 #pragma warning( pop )
 		}
 
-		inline rgb_t* RemoveAlpha(const rgba_t* data, size_t size) 
+		inline rgb_t* RemoveAlpha(const rgba_t* data, size_t size)
 		{
 			rgb_t* result = (rgb_t*)malloc(sizeof(rgb_t) * size);
-			if (result != NULL) 
+			if (result != NULL)
 			{
 				for (size_t i = 0; i < size; i++)
 				{

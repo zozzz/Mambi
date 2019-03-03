@@ -67,7 +67,7 @@ namespace Mambi
 
 	void Calibrate::ShowWindows()
 	{
-		for (auto& item: Application::Display().DisplayMap())
+		for (auto& item: Application::Display().Displays())
 		{
 			if (_windows.find(item.first) == _windows.end())
 			{
@@ -89,8 +89,17 @@ namespace Mambi
 
 	CalibrateWindow::CalibrateWindow(const Display& display): _display(display), _samples(NULL)
 	{
-		int winWidth = display.DesktopWidth();
-		int winHeight = display.DesktopHeight();
+		int winWidth, winHeight;
+
+		if (_display.Ambilight()->Available())
+		{
+			winWidth = _display.Ambilight()->Output()->Width;
+			winHeight = _display.Ambilight()->Output()->Height;
+		}
+		else
+		{
+			throw new std::exception("Unexpected error");
+		}
 		
 
 		_hWnd = CreateWindowEx(
@@ -169,15 +178,16 @@ namespace Mambi
 			_samples = NULL;
 		}
 
-		auto hFactory = const_cast<Display*>(&_display)->Samples().HFactory();
-		auto vFactory = const_cast<Display*>(&_display)->Samples().VFactory();
-		_samples = new DisplaySamples(hFactory, vFactory);
-		_samples->Update(
-			_display.DesktopWidth(), _display.DesktopHeight(),
-			_display.NativeWidth(), _display.NativeHeight(),
-			_display.LedStrip()->HCount(),
-			_display.LedStrip()->VCount());
-		RedrawWindow(_hWnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+		auto ambilight = _display.Ambilight();
+		if (ambilight->Available())
+		{
+			auto samples = _display.Ambilight()->Samples();
+			_samples = new DisplaySamples(samples->HFactory(), samples->VFactory(), 0);
+			_samples->Update(
+				_display.NativeWidth(), _display.NativeHeight(),
+				ambilight->Output()->Width, ambilight->Output()->Height);
+			RedrawWindow(_hWnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+		}		
 	}
 
 
@@ -235,7 +245,7 @@ namespace Mambi
 		for (auto& s : _samples->Items())
 		//for (auto& s : const_cast<Display&>(_display).Samples().Items())
 		{
-			RECT rect = { s.src.left, s.src.top, s.src.right, s.src.bottom };
+			RECT rect = { s.Src.left, s.Src.top, s.Src.right, s.Src.bottom };
 			//Console::WriteLine("DRAW(%ld, %ld, %ld, %ld)", rect.left, rect.top, rect.right, rect.bottom);
 		
 			if (top.begin == i || top.end == i)
