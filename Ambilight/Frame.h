@@ -2,7 +2,6 @@
 #include "stdafx.h"
 #include "DisplaySample.h"
 #include "Output.h"
-#include "Texture.h"
 
 #ifdef _DEBUG
 #  include "png.h"

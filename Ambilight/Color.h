@@ -15,12 +15,6 @@ namespace Mambi
 		uint8_t g;
 		uint8_t b;
 		uint8_t a;
-
-		/*
-		rgba_t(): r(0), g(0), b(0), a(0) {}
-		rgba_t(const struct bgra_t& o) :r(o.r), g(o.g), b(o.b), a(o.a) {}
-		rgba_t(const struct rgb_t& o) :r(o.r), g(o.g), b(o.b), a(255) {}
-		*/
 	};
 
 
@@ -29,12 +23,6 @@ namespace Mambi
 		uint8_t g;
 		uint8_t r;
 		uint8_t a;
-
-		/*
-		bgra_t() : r(0), g(0), b(0), a(0) {}
-		bgra_t(const struct rgba_t& o) :r(o.r), g(o.g), b(o.b), a(o.a) {}
-		bgra_t(const struct rgb_t& o) :r(o.r), g(o.g), b(o.b), a(255) {}
-		*/
 	};
 
 
@@ -42,12 +30,6 @@ namespace Mambi
 		uint8_t r;
 		uint8_t g;
 		uint8_t b;
-
-		/*
-		rgb_t() : r(0), g(0), b(0) {}
-		rgb_t(const struct rgba_t& o) :r(o.r), g(o.g), b(o.b) {}
-		rgb_t(const struct bgra_t& o) :r(o.r), g(o.g), b(o.b) {}
-		*/
 	};
 #pragma pack(pop)
 
@@ -55,6 +37,8 @@ namespace Mambi
 	inline bool operator!=(const rgb_t& a, const rgb_t& b) { return a.r != b.r || a.g != b.g || a.b != b.b; }
 	inline bool operator==(const rgba_t& a, const rgba_t& b) { return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a; }
 	inline bool operator!=(const rgba_t& a, const rgba_t& b) { return a.r != b.r || a.g != b.g || a.b != b.b || a.a != b.a; }
+	inline bool operator==(const bgra_t& a, const bgra_t& b) { return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a; }
+	inline bool operator!=(const bgra_t& a, const bgra_t& b) { return a.r != b.r || a.g != b.g || a.b != b.b || a.a != b.a; }
 
 
 	namespace Color

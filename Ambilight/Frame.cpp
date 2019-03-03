@@ -4,7 +4,7 @@
 #include "utils.h"
 
 
-namespace Mambi 
+namespace Mambi
 {
 	Frame::Frame(Output* const output, std::shared_ptr<DisplaySamples> samples)
 		: _output(output), _samples(samples), _txSamples(NULL)
@@ -32,7 +32,7 @@ namespace Mambi
 				_duplicatedOutput = NULL;
 			}
 		}
-		
+
 		if (_txSamples != NULL)
 		{
 			_txSamples->Release();
@@ -66,7 +66,7 @@ namespace Mambi
 					else
 					{
 						return S_FALSE;
-					}					
+					}
 				}
 			}
 			else
@@ -81,7 +81,7 @@ namespace Mambi
 		else
 		{
 			return hr;
-		}		
+		}
 	}
 
 
@@ -90,9 +90,8 @@ namespace Mambi
 		if (_mapSamples.pData != NULL)
 		{
 			_output->Context->Unmap(_txSamples, 0);
-			ZeroMemory(&_mapSamples, sizeof(D3D11_MAPPED_SUBRESOURCE));
 		}
-		
+
 		for (auto& sample : _samples->Items())
 		{
 			_output->Context->CopySubresourceRegion(_txSamples, 0, sample.Dst.left, sample.Dst.top, 0, _txAck, 0, &sample.Src);
@@ -105,7 +104,15 @@ namespace Mambi
 
 
 		HRESULT hr = _output->Context->Map(_txSamples, 0, D3D11_MAP_READ, 0, &_mapSamples);
-		return SUCCEEDED(hr);
+		if (SUCCEEDED(hr))
+		{
+			return true;
+		}
+		else
+		{
+			ZeroMemory(&_mapSamples, sizeof(D3D11_MAPPED_SUBRESOURCE));
+			return false;
+		}
 	}
 
 
@@ -118,14 +125,17 @@ namespace Mambi
 		_txSamplesDesc.Usage = D3D11_USAGE_STAGING;
 		_txSamplesDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 		_txSamplesDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-		
+
 		HRESULT hr = _output->Device->CreateTexture2D(&_txSamplesDesc, 0, &_txSamples);
-		if (FAILED(hr))
+		if (SUCCEEDED(hr))
+		{
+			return true;
+		}
+		else
 		{
 			throw new std::exception("Failed to create samples texture");
 			return false;
 		}
-		return true;
 	}
 
 

@@ -5,15 +5,12 @@
 
 namespace Mambi
 {
-	struct Output 
+	struct Output
 	{
 		Output()
 		{
-			ZeroMemory(this, sizeof(Output));	
+			ZeroMemory(this, sizeof(Output));
 			Display.cb = sizeof(DISPLAY_DEVICE);
-		};
-		~Output() {
-			printf("Output::~Output\n");			
 		};
 
 		DisplayDim Top;
