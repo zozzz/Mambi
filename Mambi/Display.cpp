@@ -204,18 +204,17 @@ namespace Mambi
 					elapsed = (int)std::chrono::duration_cast<std::chrono::milliseconds>(now - effectTime).count();
 					effectTime = std::chrono::high_resolution_clock::now();					
 
-					lock.Release();
-					
 					// Rainbow effect replace interval value after Tick
 					interval = effect->interval;
 					interval -= (elapsed - interval);
 					interval = max(0, interval);					
 				}
 				else
-				{
-					lock.Release();					
+				{					
 					interval -= elapsed;					
-				}			
+				}
+
+				lock.Release();
 
 				if (profile->Type() == ProfileType::Auto)
 				{

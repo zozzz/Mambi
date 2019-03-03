@@ -113,7 +113,7 @@ R"###({
 
 	Config::Config()
 	{
-		_mutex = CreateMutex(NULL, FALSE, NULL);
+		_mutex = CreateMutex(NULL, FALSE, L"mambi.config");
 
 		PWSTR appData = NULL;
 		SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_NO_ALIAS, NULL, &appData);

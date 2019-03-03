@@ -9,6 +9,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Mambi", "Mambi\Mambi.vcxpro
 	EndProjectSection
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Installer", "Installer\Installer.vdproj", "{6BAE8AAE-1CCC-4184-83EB-1CC9A630062D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{42E3A2A0-F4EB-4B1E-A99B-D69C76FD4109} = {42E3A2A0-F4EB-4B1E-A99B-D69C76FD4109}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Ambilight", "Ambilight\Ambilight.vcxproj", "{42E3A2A0-F4EB-4B1E-A99B-D69C76FD4109}"
 EndProject
