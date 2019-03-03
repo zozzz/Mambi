@@ -117,7 +117,7 @@ namespace Mambi
 		_txSamplesDesc.BindFlags = 0;
 		_txSamplesDesc.Usage = D3D11_USAGE_STAGING;
 		_txSamplesDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		_txSamplesDesc.MiscFlags = 0;
+		_txSamplesDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 		
 		HRESULT hr = _output->Device->CreateTexture2D(&_txSamplesDesc, 0, &_txSamples);
 		if (FAILED(hr))
