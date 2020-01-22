@@ -224,13 +224,7 @@ void CommandTransition()
 
         for (ledNum = 0; ledNum < LED_NUM; ++ledNum)
         {
-            /*
-            leds[ledNum].r = lerp8by8(TRANS_FROM[ledNum].r, TRANS_TO[ledNum].r, transProgress * 255);
-            leds[ledNum].g = lerp8by8(TRANS_FROM[ledNum].g, TRANS_TO[ledNum].g, transProgress * 255);
-            leds[ledNum].b = lerp8by8(TRANS_FROM[ledNum].b, TRANS_TO[ledNum].b, transProgress * 255);
-            */
-
-           Gradient(TRANS_FROM + ledNum, TRANS_TO +ledNum, transProgress, leds + ledNum);
+            Gradient(TRANS_FROM + ledNum, TRANS_TO +ledNum, transProgress, leds + ledNum);
         }
 
         FastLED.show();

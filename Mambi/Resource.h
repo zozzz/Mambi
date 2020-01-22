@@ -20,9 +20,8 @@
 #define IDM_CHANGE_ENABLE               113
 #define IDM_CALIBRATE_TOGGLE            116
 #define IDR_MAINFRAME                   128
-#define IDI_MAMBI_GS                    132
-#define IDI_ICON1                       133
-#define IDI_MAMBI                       133
+#define IDI_MAMBI                       137
+#define IDI_MAMBI_GS                    138
 #define IDM_TPROFILE_MIN                300
 #define IDM_TPROFILE_MAX                400
 #define IDC_STATIC                      -1
@@ -32,7 +31,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        134
+#define _APS_NEXT_RESOURCE_VALUE        139
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           117
